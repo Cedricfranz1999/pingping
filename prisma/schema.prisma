@@ -1,0 +1,147 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+model Post {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([name])
+}
+
+
+model Admin {
+    id        Int      @id @default(autoincrement())
+    username      String
+    Password      String
+
+  
+
+    @@index([username])
+}
+
+
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  image       String?
+  name        String
+  description String
+  stock       Int
+  price       String
+  categories  ProductCategory[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logs        ProductLog[]
+}
+
+model Category {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique   
+  products ProductCategory[]
+}
+model ProductCategory {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  categoryId Int
+  product    Product  @relation(fields: [productId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id])
+}
+
+
+model ProductLog {
+  id             Int       @id @default(autoincrement())
+  productId      Int
+  employeeId     Int
+  action         ProductAction
+  oldImage       String?
+  oldStock       Int?
+  oldPrice       String?
+  newStock       Int?
+  newPrice       String?
+  timestamp      DateTime  @default(now())
+
+  product        Product   @relation(fields: [productId], references: [id])
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+
+  @@index([productId])
+  @@index([employeeId])
+}
+
+
+
+model Employee {
+  id          Int       @id @default(autoincrement())
+  image       String?
+  firstname   String
+  middlename  String?
+  lastname    String
+  username    String    @unique
+  password    String
+  address     String
+  gender      String
+  isactive    Boolean?  @default(true)
+
+  canModify   Boolean   @default(false) 
+
+  attendances Attendance[]  
+  productLogs ProductLog[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+
+
+
+
+
+model Attendance {
+  id          Int               @id @default(autoincrement())
+  employeeId  Int
+  date        DateTime          @default(now())
+  timeIn      DateTime?
+  timeOut     DateTime?
+  status      AttendanceStatus? 
+  employee    Employee          @relation(fields: [employeeId], references: [id])
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([employeeId, date])
+}
+
+enum AttendanceStatus {
+  OVERTIME
+  UNDERTIME
+  EXACT_TIME
+}
+enum ProductAction {
+  ADD
+  EDIT
+  DELETE
+}
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  address   String
+  contact   String
+  star      Int      // for rating (1–5 stars)
+  feedback  String
+  createdAt DateTime @default(now())
+}
