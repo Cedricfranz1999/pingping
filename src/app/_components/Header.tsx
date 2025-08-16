@@ -92,7 +92,7 @@ const Header = () => {
 
             <nav className="grid gap-3 text-base font-medium">
               <Link
-                href="/admin//dashboard"
+                href="/admin/dashboard"
                 className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
               >
                 <LayoutDashboard className="h-5 w-5" />
@@ -109,14 +109,14 @@ const Header = () => {
                 </Link>
                 <div className="ml-8 space-y-1">
                   <Link
-                    href="/employee/management"
+                    href="/admin/employee"
                     className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
                   >
                     <UserCheck className="h-4 w-4" />
                     Employee Management
                   </Link>
                   <Link
-                    href="/employee/attendance"
+                    href="/admin/attendance"
                     className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
                   >
                     <Clock className="h-4 w-4" />
@@ -125,16 +125,38 @@ const Header = () => {
                 </div>
               </div>
 
-              <Link
-                href="/products"
-                className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
-              >
-                <Package className="h-5 w-5" />
-                Products
-              </Link>
+              <div className="space-y-2">
+                <div className="flex items-center gap-4 rounded-xl px-4 py-3">
+                  <Package className="h-5 w-5" />
+                  Management
+                </div>
+                <div className="ml-8 space-y-1">
+                  <Link
+                    href="/admin/product"
+                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                  >
+                    <Package className="h-4 w-4" />
+                    Product
+                  </Link>
+                  <Link
+                    href="/admin/category-product"
+                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                  >
+                    <Package className="h-4 w-4" />
+                    Product Category
+                  </Link>
+                  <Link
+                    href="/admin/featured-products"
+                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                  >
+                    <Package className="h-4 w-4" />
+                    Featured Products
+                  </Link>
+                </div>
+              </div>
 
               <Link
-                href="/user-feedback"
+                href="/admin/feedback"
                 className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
               >
                 <MessageSquare className="h-5 w-5" />
@@ -142,7 +164,7 @@ const Header = () => {
               </Link>
 
               <Link
-                href="/reports"
+                href="/admin/reports"
                 className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
               >
                 <FileText className="h-5 w-5" />

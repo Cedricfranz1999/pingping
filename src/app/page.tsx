@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ImprovedHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -32,6 +33,16 @@ export default function ImprovedHomePage() {
         staggerChildren: 0.08,
       },
     },
+  };
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      window.scrollTo({
+        top: element.offsetTop - 80, // Adjust for header height
+        behavior: "smooth",
+      });
+    }
   };
 
   // Auto-advance carousel
@@ -53,6 +64,7 @@ export default function ImprovedHomePage() {
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
   };
+  const router = useRouter();
 
   // 12 products, all with fish.png as image temporarily
   const products = [
@@ -193,30 +205,49 @@ export default function ImprovedHomePage() {
             <nav className="hidden items-center space-x-8 md:flex">
               <a
                 href="#about"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("about");
+                }}
                 className="font-medium text-gray-700 transition-colors hover:text-[#f8610e]"
               >
                 About
               </a>
               <a
                 href="#products"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("products");
+                }}
                 className="font-medium text-gray-700 transition-colors hover:text-[#f8610e]"
               >
                 Products
               </a>
               <a
                 href="#pasalubong"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("pasalubong");
+                }}
                 className="font-medium text-gray-700 transition-colors hover:text-[#f8610e]"
               >
                 Pasalubong
               </a>
               <a
                 href="#contact"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("contact");
+                }}
                 className="font-medium text-gray-700 transition-colors hover:text-[#f8610e]"
               >
                 Contact
               </a>
-              <Button className="rounded-full bg-[#f8610e] px-6 py-2 text-white hover:bg-[#f8610e]/90">
-                Order Now
+              <Button
+                className="rounded-full bg-[#f8610e] px-6 py-2 text-white hover:bg-[#f8610e]/90"
+                onClick={() => router.push("/feedback")}
+              >
+                Feedback
               </Button>
             </nav>
           </div>
@@ -224,7 +255,7 @@ export default function ImprovedHomePage() {
       </motion.header>
 
       {/* Carousel Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden" id="about">
         <div className="relative h-screen">
           <AnimatePresence mode="wait">
             {/* Slide 1: Hero Section */}
@@ -631,8 +662,14 @@ export default function ImprovedHomePage() {
                 <h4 className="text-lg font-semibold text-gray-900">{name}</h4>
                 <p className="text-gray-600">{description}</p>
                 <p className="mt-3 font-bold text-[#f8610e]">{price}</p>
-                <Button className="mt-4 w-full rounded-full bg-[#f8610e] text-white hover:bg-[#f8610e]/90">
-                  Add to Cart
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection("inquire");
+                  }}
+                  className="mt-4 w-full rounded-full bg-[#f8610e] text-white hover:bg-[#f8610e]/90"
+                >
+                  Order now
                 </Button>
               </CardContent>
             </Card>
@@ -665,8 +702,14 @@ export default function ImprovedHomePage() {
                 <h4 className="text-lg font-semibold text-gray-900">{name}</h4>
                 <p className="text-gray-600">{description}</p>
                 <p className="mt-3 font-bold text-[#f8610e]">{price}</p>
-                <Button className="mt-4 w-full rounded-full bg-[#f8610e] text-white hover:bg-[#f8610e]/90">
-                  Add to Cart
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection("inquire");
+                  }}
+                  className="mt-4 w-full rounded-full bg-[#f8610e] text-white hover:bg-[#f8610e]/90"
+                >
+                  Order now
                 </Button>
               </CardContent>
             </Card>
@@ -675,7 +718,7 @@ export default function ImprovedHomePage() {
       </section>
 
       <section id="contact" className="bg-gray-50 py-20">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-7xl px-6" id="inquire">
           <motion.div
             initial="initial"
             whileInView="animate"

@@ -193,32 +193,144 @@ const Sidebar = () => {
                         />
                         Employee Attendance
                       </Link>
+
+                      <Link
+                        href="/admin/record-attendance"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/record-attendance")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Package
+                          className={`h-4 w-4 ${
+                            isActive("/record-attendance")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Attendance Record
+                      </Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </motion.div>
 
               {/* Products */}
+              {/* Products - with expandable children */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.3 }}
+                className="space-y-1"
               >
-                <Link
-                  href="/products"
-                  className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                    isActive("/products")
-                      ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
-                      : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
-                  }`}
-                >
-                  <Package
-                    className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                      isActive("/products") ? "text-[#f8610e]" : "text-white"
-                    }`}
-                  />
-                  Products
-                </Link>
+                <div className="flex items-center">
+                  <div
+                    className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${expandedMenus["/products"] ? "bg-white/20 backdrop-blur-sm" : "hover:bg-white/20 hover:backdrop-blur-sm"}`}
+                  >
+                    <Package className="h-5 w-5" />
+                    Management
+                  </div>
+                  <motion.button
+                    onClick={() => toggleMenu("/products")}
+                    className="ml-2 rounded-lg p-2 text-white transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <AnimatePresence mode="wait">
+                      {expandedMenus["/products"] ? (
+                        <motion.div
+                          key="up"
+                          initial={{ rotate: 180 }}
+                          animate={{ rotate: 0 }}
+                          exit={{ rotate: 180 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="down"
+                          initial={{ rotate: 0 }}
+                          animate={{ rotate: 0 }}
+                          exit={{ rotate: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+
+                <AnimatePresence>
+                  {expandedMenus["/products"] && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="ml-6 space-y-1 overflow-hidden"
+                    >
+                      {/* Product */}
+                      <Link
+                        href="/admin/product"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/product")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Package
+                          className={`h-4 w-4 ${
+                            isActive("/admin/product")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Product
+                      </Link>
+
+                      {/* Product Category */}
+                      <Link
+                        href="/admin/category-product"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/category-product")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Package
+                          className={`h-4 w-4 ${
+                            isActive("/admin/category-product")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Product Category
+                      </Link>
+
+                      {/* Featured Products */}
+                      <Link
+                        href="/admin/featured-products"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/featured-products")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Package
+                          className={`h-4 w-4 ${
+                            isActive("/admin/featured-products")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Featured Products
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* User Feedback */}
@@ -228,16 +340,16 @@ const Sidebar = () => {
                 transition={{ duration: 0.3, delay: 0.4 }}
               >
                 <Link
-                  href="/user-feedback"
+                  href="/admin/feedback"
                   className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                    isActive("/user-feedback")
+                    isActive("/admin/feedback")
                       ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
                       : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
                   }`}
                 >
                   <MessageSquare
                     className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                      isActive("/user-feedback")
+                      isActive("/admin/feedback")
                         ? "text-[#f8610e]"
                         : "text-white"
                     }`}
@@ -253,16 +365,18 @@ const Sidebar = () => {
                 transition={{ duration: 0.3, delay: 0.5 }}
               >
                 <Link
-                  href="/reports"
+                  href="/admin/reports"
                   className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                    isActive("/reports")
+                    isActive("/admin/reports")
                       ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
                       : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
                   }`}
                 >
                   <FileText
                     className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                      isActive("/reports") ? "text-[#f8610e]" : "text-white"
+                      isActive("/admin/reports")
+                        ? "text-[#f8610e]"
+                        : "text-white"
                     }`}
                   />
                   Reports
