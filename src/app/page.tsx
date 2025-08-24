@@ -16,7 +16,11 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "~/trpc/react";
+import z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
+import { useForm } from "react-hook-form";
 export default function ImprovedHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 3;
@@ -66,102 +70,61 @@ export default function ImprovedHomePage() {
   };
   const router = useRouter();
 
-  // 12 products, all with fish.png as image temporarily
-  const products = [
-    {
-      id: 1,
-      name: "Premium Smoked Tinapa",
-      description: "Handcrafted traditional smoked fish with rich flavor.",
-      image: "/fish.png",
-      price: "₱350 / pack",
-    },
-    {
-      id: 2,
-      name: "Tinapa Flakes",
-      description: "Delicious smoked fish flakes perfect for rice toppings.",
-      image: "/fish.png",
-      price: "₱200 / jar",
-    },
-    {
-      id: 3,
-      name: "Spicy Tinapa",
-      description: "Smoked fish with a spicy twist for adventurous taste buds.",
-      image: "/fish.png",
-      price: "₱380 / pack",
-    },
-    {
-      id: 4,
-      name: "Garlic Tinapa",
-      description: "Smoked fish infused with garlic flavor.",
-      image: "/fish.png",
-      price: "₱360 / pack",
-    },
-    {
-      id: 5,
-      name: "Sweet Tinapa",
-      description: "Sweet-smoked fish with a delicate aroma.",
-      image: "/fish.png",
-      price: "₱340 / pack",
-    },
-    {
-      id: 6,
-      name: "Extra Spicy Tinapa",
-      description: "For those who like it hot and smoky.",
-      image: "/fish.png",
-      price: "₱400 / pack",
-    },
-    {
-      id: 7,
-      name: "Tinapa Belly Cuts",
-      description: "Tender belly cuts of smoked fish.",
-      image: "/fish.png",
-      price: "₱370 / pack",
-    },
-    {
-      id: 8,
-      name: "Tinapa in Oil",
-      description: "Smoked fish preserved in flavorful oil.",
-      image: "/fish.png",
-      price: "₱300 / jar",
-    },
-    {
-      id: 9,
-      name: "Salted Tinapa",
-      description: "Traditional salted smoked fish.",
-      image: "/fish.png",
-      price: "₱330 / pack",
-    },
-    {
-      id: 10,
-      name: "Tinapa with Chili",
-      description: "Smoked fish with chili flakes for a kick.",
-      image: "/fish.png",
-      price: "₱390 / pack",
-    },
-    {
-      id: 11,
-      name: "Smoked Tinapa Nuggets",
-      description: "Bite-sized smoked fish nuggets.",
-      image: "/fish.png",
-      price: "₱280 / pack",
-    },
-    {
-      id: 12,
-      name: "Classic Tinapa",
-      description: "The original smoked fish everyone loves.",
-      image: "/fish.png",
-      price: "₱350 / pack",
-    },
-  ];
+  const { data: products, isLoading: loadingTinapa } =
+    api.product.getTinapaProducts.useQuery();
+  const { data: pasalubongItems, isLoading: loadingPasalubong } =
+    api.product.getPasalubongProducts.useQuery();
 
   // 12 pasalubong items, all with pasalubonghd.png placeholder
-  const pasalubongItems = Array.from({ length: 12 }, (_, i) => ({
-    id: i + 1,
-    name: `Pasalubong Item ${i + 1}`,
-    description: "A perfect gift to bring home.",
-    image: "/pasalubonghd.png",
-    price: "₱150 / piece",
-  }));
+  const formSchema = z.object({
+    firstname: z.string().min(1, "First name is required"),
+    lastname: z.string().min(1, "Last name is required"),
+    email: z.string().email().optional().or(z.literal("")),
+    phone: z
+      .string()
+      .min(11, "Phone must be 11 digits")
+      .max(11, "Phone must be 11 digits"),
+    subject: z.string().optional(),
+    message: z.string().min(1, "Message is required"),
+  });
+
+  type FormData = z.infer<typeof formSchema>;
+
+  // Form state and methods
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const createOrder = api.orders.create.useMutation();
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
+    try {
+      await createOrder.mutateAsync({
+        firstname: data.firstname,
+        lastname: data.lastname,
+        email: data.email || undefined,
+        phone: data.phone,
+        subject: data.subject || undefined,
+        message: data.message,
+      });
+      setSubmitSuccess(true);
+      reset();
+      setTimeout(() => setSubmitSuccess(false), 5000);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div
@@ -643,7 +606,7 @@ export default function ImprovedHomePage() {
           Our Products
         </h3>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map(({ id, name, description, image, price }) => (
+          {products?.map(({ id, name, description, image, price }) => (
             <Card
               key={id}
               className="overflow-hidden rounded-2xl px-4 shadow-lg"
@@ -658,20 +621,26 @@ export default function ImprovedHomePage() {
                   className="object-cover"
                 />
               </div>
-              <CardContent className="space-y-2 p-6">
-                <h4 className="text-lg font-semibold text-gray-900">{name}</h4>
-                <p className="text-gray-600">{description}</p>
-                <p className="mt-3 font-bold text-[#f8610e]">{price}</p>
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("inquire");
-                  }}
-                  className="mt-4 w-full rounded-full bg-[#f8610e] text-white hover:bg-[#f8610e]/90"
-                >
-                  Order now
-                </Button>
-              </CardContent>
+                    <CardContent className="space-y-4 p-6">
+          <h4 className="text-xl font-bold text-gray-900">{name}</h4>
+          <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
+
+          <div className="mt-6 space-y-3">
+            <Button
+              className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
+            >
+              Order now
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
+            >
+              Add to cart
+            </Button>
+          </div>
+        </CardContent>
+
             </Card>
           ))}
         </div>
@@ -683,7 +652,7 @@ export default function ImprovedHomePage() {
           Pasalubong Gifts
         </h3>
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {pasalubongItems.map(({ id, name, description, image, price }) => (
+          {pasalubongItems?.map(({ id, name, description, image, price }) => (
             <Card
               key={id}
               className="overflow-hidden rounded-2xl px-4 shadow-lg"
@@ -830,35 +799,71 @@ export default function ImprovedHomePage() {
                   <h3 className="mb-6 text-2xl font-bold text-gray-900">
                     Send us a Message
                   </h3>
-                  <form className="space-y-6">
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    {submitSuccess && (
+                      <div className="rounded-md bg-green-50 p-4">
+                        <div className="flex">
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-green-800">
+                              Message sent successfully!
+                            </h3>
+                            <div className="mt-2 text-sm text-green-700">
+                              <p>
+                                Thank you for contacting us Well get back to you
+                                soon.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label
-                          htmlFor="firstName"
+                          htmlFor="firstname"
                           className="mb-2 block text-sm font-medium text-gray-700"
                         >
                           First Name
                         </label>
                         <input
-                          type="text"
-                          id="firstName"
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none"
+                          id="firstname"
+                          {...register("firstname")}
+                          className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
+                            errors.firstname
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
                           placeholder="John"
                         />
+                        {errors.firstname && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.firstname.message}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label
-                          htmlFor="lastName"
+                          htmlFor="lastname"
                           className="mb-2 block text-sm font-medium text-gray-700"
                         >
                           Last Name
                         </label>
                         <input
-                          type="text"
-                          id="lastName"
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none"
+                          id="lastname"
+                          {...register("lastname")}
+                          className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
+                            errors.lastname
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
                           placeholder="Doe"
                         />
+                        {errors.lastname && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.lastname.message}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -870,11 +875,19 @@ export default function ImprovedHomePage() {
                         Email
                       </label>
                       <input
-                        type="email"
                         id="email"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none"
+                        type="email"
+                        {...register("email")}
+                        className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
+                          errors.email ? "border-red-500" : "border-gray-300"
+                        }`}
                         placeholder="john.doe@example.com"
                       />
+                      {errors.email && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.email.message}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -885,11 +898,19 @@ export default function ImprovedHomePage() {
                         Phone Number
                       </label>
                       <input
-                        type="tel"
                         id="phone"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none"
-                        placeholder="+63 917 123 4567"
+                        type="tel"
+                        {...register("phone")}
+                        className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
+                          errors.phone ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="09171234567"
                       />
+                      {errors.phone && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.phone.message}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -900,11 +921,18 @@ export default function ImprovedHomePage() {
                         Subject
                       </label>
                       <input
-                        type="text"
                         id="subject"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none"
+                        {...register("subject")}
+                        className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
+                          errors.subject ? "border-red-500" : "border-gray-300"
+                        }`}
                         placeholder="Product Inquiry"
                       />
+                      {errors.subject && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.subject.message}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -917,13 +945,25 @@ export default function ImprovedHomePage() {
                       <textarea
                         id="message"
                         rows={5}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none"
+                        {...register("message")}
+                        className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
+                          errors.message ? "border-red-500" : "border-gray-300"
+                        }`}
                         placeholder="Tell us about your inquiry or order requirements..."
                       ></textarea>
+                      {errors.message && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.message.message}
+                        </p>
+                      )}
                     </div>
 
-                    <Button className="w-full rounded-full bg-[#f8610e] py-3 text-lg font-semibold text-white hover:bg-[#f8610e]/90">
-                      Send Message
+                    <Button
+                      type="submit"
+                      className="w-full rounded-full bg-[#f8610e] py-3 text-lg font-semibold text-white hover:bg-[#f8610e]/90 disabled:opacity-70"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Sending..." : "Send Message"}
                     </Button>
                   </form>
                 </CardContent>

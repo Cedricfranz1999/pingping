@@ -145,13 +145,13 @@ const Header = () => {
                     <Package className="h-4 w-4" />
                     Product Category
                   </Link>
-                  <Link
+                  {/* <Link
                     href="/admin/featured-products"
                     className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
                   >
                     <Package className="h-4 w-4" />
                     Featured Products
-                  </Link>
+                  </Link> */}
                 </div>
               </div>
 

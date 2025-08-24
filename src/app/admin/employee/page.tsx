@@ -325,6 +325,7 @@ const EmployeePage = () => {
         width={80}
         height={80}
         className="rounded-lg border-2 border-[#f8610e]/20 object-cover"
+        unoptimized
       />
       <Button
         type="button"
@@ -669,6 +670,7 @@ const EmployeePage = () => {
                             width={32}
                             height={32}
                             className="rounded-full object-cover"
+                            unoptimized
                           />
                         )}
                         <div>

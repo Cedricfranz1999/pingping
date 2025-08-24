@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { ProductType } from "@prisma/client";
 
 export const productsRouter = createTRPCRouter({
   // ===============================
@@ -79,6 +80,7 @@ export const productsRouter = createTRPCRouter({
         stock: z.number().int().min(0),
         image: z.string().url().optional(),
         category: z.string().min(1), // single category name
+        productType: z.nativeEnum(ProductType), // Add this line
       }),
     )
     .mutation(async ({ input }) => {
@@ -94,6 +96,8 @@ export const productsRouter = createTRPCRouter({
           description: input.description,
           price: input.price,
           stock: input.stock,
+          productType: input.productType,
+
           image:
             input.image ??
             `/placeholder.svg?height=100&width=100&query=${encodeURIComponent(input.name)}`,
@@ -124,6 +128,7 @@ export const productsRouter = createTRPCRouter({
         stock: z.number().int().min(0),
         image: z.string().url().optional(),
         category: z.string().min(1),
+        productType: z.nativeEnum(ProductType),
       }),
     )
     .mutation(async ({ input }) => {
@@ -141,8 +146,10 @@ export const productsRouter = createTRPCRouter({
           price: input.price,
           stock: input.stock,
           image: input.image,
+          productType: input.productType,
+
           categories: {
-            deleteMany: {}, // remove old categories
+            deleteMany: {},
             create: {
               categoryId: category.id,
             },
@@ -165,4 +172,33 @@ export const productsRouter = createTRPCRouter({
       });
       return deleted;
     }),
+  getTinapaProducts: publicProcedure.query(async ({ ctx }) => {
+    return await ctx.db.product.findMany({
+      where: {
+        productType: "TINAPA",
+      },
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+  }),
+
+  getPasalubongProducts: publicProcedure.query(async ({ ctx }) => {
+    return await ctx.db.product.findMany({
+      where: {
+        productType: "PASALUBONG",
+      },
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+  }),
 });

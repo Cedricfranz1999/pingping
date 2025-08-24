@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { type Product, type Category } from "@prisma/client";
+import { type Product, type Category, ProductType } from "@prisma/client";
 import {
   ChevronDown,
   ChevronUp,
@@ -70,6 +70,7 @@ type ProductFormData = {
   stock: number;
   image?: string;
   category: string;
+  productType: ProductType;
   imageFile?: File | null;
 };
 
@@ -92,6 +93,8 @@ const ProductsPage: NextPage = () => {
     description: "",
     price: "0",
     stock: 0,
+    productType: "TINAPA",
+
     image: "",
     category: "",
     imageFile: null,
@@ -109,6 +112,8 @@ const ProductsPage: NextPage = () => {
     sortBy,
     sortOrder,
   });
+
+  console.log("TEST", productsData);
 
   const { data: categories } = api.product.getCategories.useQuery();
 
@@ -143,6 +148,7 @@ const ProductsPage: NextPage = () => {
       stock: 0,
       image: "",
       category: "",
+      productType: "TINAPA",
       imageFile: null,
     });
   };
@@ -163,6 +169,7 @@ const ProductsPage: NextPage = () => {
       description: product.description,
       price: product.price,
       stock: product.stock,
+      productType: product.productType,
       image: product.image || "",
       category: product.categories[0]?.category.name || "",
       imageFile: null,
@@ -205,6 +212,7 @@ const ProductsPage: NextPage = () => {
       stock: formData.stock,
       image: formData.image,
       category: formData.category,
+      productType: formData.productType,
     };
 
     if (isEditModalOpen && selectedProduct) {
@@ -390,6 +398,8 @@ const ProductsPage: NextPage = () => {
                       </div>
                     </TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Type</TableHead>
+
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -428,6 +438,7 @@ const ProductsPage: NextPage = () => {
                             </AvatarFallback>
                           </Avatar>
                         </TableCell>
+
                         <TableCell>
                           <div className="font-medium">{product.name}</div>
                         </TableCell>
@@ -442,7 +453,10 @@ const ProductsPage: NextPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStockBadgeVariant(product.stock)}>
+                          <Badge
+                            variant={getStockBadgeVariant(product.stock)}
+                            className={`${product.stock > 10 ? "bg-green-600" : "bg-red-600"}`}
+                          >
                             {product.stock} - {getStockText(product.stock)}
                           </Badge>
                         </TableCell>
@@ -453,6 +467,14 @@ const ProductsPage: NextPage = () => {
                           >
                             {product.categories[0]?.category.name ||
                               "Uncategorized"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="border-[#f8610e]/20 text-[#f8610e]"
+                          >
+                            {product.productType}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">

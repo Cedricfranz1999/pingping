@@ -378,36 +378,54 @@ const ProductReportsPage = () => {
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData?.stockChart ?? []}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="name"
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                        tick={{ fill: "#64748b", fontSize: 12 }}
-                      />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "white",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    <div className="scroll- w-full overflow-x-auto overflow-y-hidden">
+                      <div
+                        style={{
+                          minWidth: `${Math.max((chartData?.stockChart?.length ?? 0) * 72, 640)}px`,
+                          height: 320, // 👈 must set a height!
                         }}
-                      />
-                      <Legend />
-                      <Bar
-                        dataKey="stock"
-                        name="Stock Level"
-                        fill="#f97316"
-                        radius={[4, 4, 0, 0]}
-                        className="drop-shadow-sm"
-                      />
-                    </BarChart>
+                      >
+                        <BarChart
+                          width={Math.max(
+                            (chartData?.stockChart?.length ?? 0) * 72,
+                            640,
+                          )} // 👈 give width
+                          height={320} // 👈 give height
+                          data={chartData?.stockChart ?? []}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f1f5f9"
+                          />
+                          <XAxis
+                            dataKey="name"
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
+                            tick={{ fill: "#64748b", fontSize: 12 }}
+                            interval={0}
+                          />
+                          <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "white",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            }}
+                          />
+                          <Legend />
+                          <Bar
+                            dataKey="stock"
+                            name="Stock Level"
+                            fill="#f97316"
+                            radius={[4, 4, 0, 0]}
+                            className="drop-shadow-sm"
+                          />
+                        </BarChart>
+                      </div>
+                    </div>
                   </ResponsiveContainer>
                 )}
               </div>

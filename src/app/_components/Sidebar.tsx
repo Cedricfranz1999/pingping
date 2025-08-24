@@ -11,6 +11,8 @@ import {
   ChevronUp,
   UserCheck,
   Clock,
+  ListOrdered,
+  Codesandbox,
 } from "lucide-react";
 import { Label } from "~/components/ui/label";
 import { usePathname } from "next/navigation";
@@ -34,10 +36,10 @@ const Sidebar = () => {
 
   return (
     <div
-      className="hidden bg-[#702600] bg-fixed bg-no-repeat md:block"
+      className="fixed top-0 left-0 hidden h-screen w-64 bg-[#702600] bg-fixed bg-no-repeat md:block"
       style={{ backgroundImage: "url('/background.png')" }}
     >
-      <div className="h-full bg-[#a85e38]">
+      <div className="h-full overflow-y-auto bg-[#a85e38]">
         <div className="flex h-full max-h-screen flex-col gap-2">
           {/* Logo Section */}
           <motion.div
@@ -93,7 +95,7 @@ const Sidebar = () => {
                 </Link>
               </motion.div>
 
-              {/* Employee - with expandable children */}
+              {/* Track Orders - with expandable children */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -101,8 +103,123 @@ const Sidebar = () => {
                 className="space-y-1"
               >
                 <div className="flex items-center">
+                  <div
+                    className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${
+                      expandedMenus["/track-orders"]
+                        ? "bg-white/20 backdrop-blur-sm"
+                        : "hover:bg-white/20 hover:backdrop-blur-sm"
+                    }`}
+                  >
+                    <Codesandbox className="h-5 w-5" />
+                    Track Orders
+                  </div>
+                  <motion.button
+                    onClick={() => toggleMenu("/track-orders")}
+                    className="ml-2 rounded-lg p-2 text-white transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <AnimatePresence mode="wait">
+                      {expandedMenus["/track-orders"] ? (
+                        <motion.div
+                          key="up"
+                          initial={{ rotate: 180 }}
+                          animate={{ rotate: 0 }}
+                          exit={{ rotate: 180 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="down"
+                          initial={{ rotate: 0 }}
+                          animate={{ rotate: 0 }}
+                          exit={{ rotate: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+
+                <AnimatePresence>
+                  {expandedMenus["/track-orders"] && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="ml-6 space-y-1 overflow-hidden"
+                    >
+                      <Link
+                        href="/admin/order"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/order")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <ListOrdered
+                          className={`h-4 w-4 ${
+                            isActive("/admin/order")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Orders
+                      </Link>
+                      <Link
+                        href="/admin/sales"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/sales")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <FileText
+                          className={`h-4 w-4 ${
+                            isActive("/admin/sales")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Sales
+                      </Link>
+                      <Link
+                        href="/admin/inventory"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/inventory")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Package
+                          className={`h-4 w-4 ${
+                            isActive("/admin/inventory")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Inventory
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* Employee - with expandable children */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+                className="space-y-1"
+              >
+                <div className="flex items-center">
                   <Link
-                    href="/employee"
+                    href="/admin/employee"
                     className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                       isActive("/admin/employee")
                         ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
@@ -216,12 +333,11 @@ const Sidebar = () => {
                 </AnimatePresence>
               </motion.div>
 
-              {/* Products */}
               {/* Products - with expandable children */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
                 className="space-y-1"
               >
                 <div className="flex items-center">
@@ -309,25 +425,6 @@ const Sidebar = () => {
                         />
                         Product Category
                       </Link>
-
-                      {/* Featured Products */}
-                      <Link
-                        href="/admin/featured-products"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/featured-products")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <Package
-                          className={`h-4 w-4 ${
-                            isActive("/admin/featured-products")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        Featured Products
-                      </Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -337,7 +434,7 @@ const Sidebar = () => {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
               >
                 <Link
                   href="/admin/feedback"
@@ -362,7 +459,7 @@ const Sidebar = () => {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.5 }}
+                transition={{ duration: 0.3, delay: 0.6 }}
               >
                 <Link
                   href="/admin/reports"
