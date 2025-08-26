@@ -155,7 +155,7 @@ const Sidebar = () => {
                       className="ml-6 space-y-1 overflow-hidden"
                     >
                       <Link
-                        href="/admin/order"
+                        href="/admin/inquiry"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
                           isActive("/admin/order")
                             ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
@@ -164,12 +164,29 @@ const Sidebar = () => {
                       >
                         <ListOrdered
                           className={`h-4 w-4 ${
-                            isActive("/admin/order")
+                            isActive("/admin/inquiry")
                               ? "text-[#f8610e]"
                               : "text-white/90"
                           }`}
                         />
-                        Orders
+                        Inquiry
+                      </Link>
+                          <Link
+                        href="/admin/walk-in"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/walk-in")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <ListOrdered
+                          className={`h-4 w-4 ${
+                            isActive("/admin/walk-in")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Walk in
                       </Link>
                       <Link
                         href="/admin/sales"

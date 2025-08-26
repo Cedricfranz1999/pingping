@@ -1,4 +1,3 @@
-// ~/app/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -20,23 +19,24 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   const router = useRouter();
-  const { login } = useAuthStore(); // Get the login function from Zustand store
+  const login = useAuthStore((state) => state.login);
 
-  const loginMutation = api.auth.login.useMutation({
+  const loginMutation = api.auth.employeeLogin.useMutation({
     onSuccess: (data) => {
-      // Use Zustand store instead of localStorage
+      // Store user information in Zustand store
       login({
         userId: data.userId,
         username: data.username,
-        role: "admin",
-     
+        role: "employee",
+        firstName: data.firstName,
+        lastName: data.lastName,
+        canModify:data.canModify
+
       });
       
-      if (data.role === "admin") {
-        router.push("/admin/dashboard");
-      } else if (data.role === "employee") {
-        router.push("/employee/dashboard");
-      }
+      // Redirect based on role
+        router.push("/employee/attendance");
+     
     },
     onError: (error) => {
       setError(error.message);
@@ -93,7 +93,7 @@ export default function LoginPage() {
               <div className="mb-4 flex justify-center">
                 <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#f8610e]/10">
                   <Image
-                    alt="Pings Ping Tinapa Logo"
+                    alt="Company Logo"
                     src="/logo.png"
                     width={60}
                     height={60}
@@ -105,10 +105,7 @@ export default function LoginPage() {
                 Welcome Back
               </h1>
               <p className="text-gray-600">
-                Sign in to{" "}
-                <span className="font-semibold text-[#f8610e]">
-                  Pings Ping Tinapa
-                </span>
+                Sign in to your account
               </p>
             </motion.div>
 
@@ -214,19 +211,15 @@ export default function LoginPage() {
             {/* Footer */}
             <motion.div variants={fadeInUp} className="mt-8 text-center">
               <p className="text-sm text-gray-600">
-                Dont have an account?{" "}
+                Dont have an account{" "}
                 <a
-                  href="/register"
+                  href="/contact"
                   className="font-medium text-[#f8610e] hover:text-[#f8610e]/80"
                 >
                   Contact Administrator
                 </a>
               </p>
             </motion.div>
-
-            {/* Decorative Elements */}
-            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[#f8610e]/10 blur-xl" />
-            <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-[#f8610e]/5 blur-xl" />
           </CardContent>
         </Card>
 

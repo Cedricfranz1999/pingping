@@ -13,7 +13,7 @@ export const ordersRouter = createTRPCRouter({
         email: z.string().email().optional(),
         phone: z.string().min(11).max(11),
         subject: z.string().optional(),
-        message: z.string().min(1), // lowercase
+        message: z.string().min(1),
       }),
     )
     .mutation(async ({ input }) => {
@@ -23,7 +23,7 @@ export const ordersRouter = createTRPCRouter({
           lastname: input.lastname,
           email: input.email,
           subject: input.subject,
-          message: input.message, // lowercase
+          message: input.message,
           phone: input.phone,
         },
       });
@@ -100,6 +100,23 @@ export const ordersRouter = createTRPCRouter({
           email: input.email,
           subject: input.subject,
           message: input.message,
+        },
+      });
+    }),
+
+  // Toggle order status
+  toggleStatus: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return await db.order.update({
+        where: { id: input.id },
+        data: {
+          status: input.status,
         },
       });
     }),

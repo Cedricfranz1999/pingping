@@ -29,19 +29,34 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useRouter } from "next/navigation";
 import { Label } from "~/components/ui/label";
 import { motion } from "framer-motion";
+import { useAuthStore } from "../store/auth-store";
 
 const Header = () => {
   const router = useRouter();
+  
+  // Get user data from Zustand store
+  const { user, logout, isAuthenticated } = useAuthStore();
+  
+const handleLogout = () => {
+  logout();
+  if (user?.role === "admin") {
+    router.push("/admin-sign-in");
+  } else {
+    router.push("/employee-login"); 
+  }
+};
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminData");
-    router.push("/login");
-  };
 
-  // Get admin data from localStorage
-  const adminData =
-    typeof window !== "undefined" ? localStorage.getItem("adminData") : null;
-  const username = adminData ? JSON.parse(adminData).username : "Admin";
+  // Get username from auth store
+  const username = user?.username || "User";
+  const role = user?.role || "employee";
+  const firstName = user?.firstName || "";
+  const lastName = user?.lastName || "";
+
+  // Determine display name
+  const displayName = firstName && lastName 
+    ? `${firstName} ${lastName}` 
+    : username;
 
   return (
     <motion.header
@@ -86,90 +101,108 @@ const Header = () => {
               </div>
               <div>
                 <span className="text-lg font-bold">Pings Ping Tinapa</span>
-                <p className="text-xs text-white/80">Admin Dashboard</p>
+                <p className="text-xs text-white/80">
+                  {role === "admin" ? "Admin Dashboard" : "Employee Portal"}
+                </p>
               </div>
             </div>
 
             <nav className="grid gap-3 text-base font-medium">
-              <Link
-                href="/admin/dashboard"
-                className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Dashboard
-              </Link>
-
-              <div className="space-y-2">
-                <Link
-                  href="/employee"
-                  className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
-                >
-                  <Users className="h-5 w-5" />
-                  Employee
-                </Link>
-                <div className="ml-8 space-y-1">
+              {role === "admin" ? (
+                // Admin Navigation
+                <>
                   <Link
-                    href="/admin/employee"
-                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                    href="/admin/dashboard"
+                    className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
                   >
-                    <UserCheck className="h-4 w-4" />
-                    Employee Management
+                    <LayoutDashboard className="h-5 w-5" />
+                    Dashboard
+                  </Link>
+
+                  <div className="space-y-2">
+                    <Link
+                      href="/employee"
+                      className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                    >
+                      <Users className="h-5 w-5" />
+                      Employee
+                    </Link>
+                    <div className="ml-8 space-y-1">
+                      <Link
+                        href="/admin/employee"
+                        className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        Employee Management
+                      </Link>
+                      <Link
+                        href="/admin/attendance"
+                        className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                      >
+                        <Clock className="h-4 w-4" />
+                        Employee Attendance
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-4 rounded-xl px-4 py-3">
+                      <Package className="h-5 w-5" />
+                      Management
+                    </div>
+                    <div className="ml-8 space-y-1">
+                      <Link
+                        href="/admin/product"
+                        className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                      >
+                        <Package className="h-4 w-4" />
+                        Product
+                      </Link>
+                      <Link
+                        href="/admin/category-product"
+                        className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                      >
+                        <Package className="h-4 w-4" />
+                        Product Category
+                      </Link>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/admin/feedback"
+                    className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                  >
+                    <MessageSquare className="h-5 w-5" />
+                    User Feedback
+                  </Link>
+
+                  <Link
+                    href="/admin/reports"
+                    className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                  >
+                    <FileText className="h-5 w-5" />
+                    Reports
+                  </Link>
+                </>
+              ) : (
+                // Employee Navigation
+                <>
+                  <Link
+                    href="/employee/attendance"
+                    className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                  >
+                    <Clock className="h-5 w-5" />
+                    Attendance
                   </Link>
                   <Link
-                    href="/admin/attendance"
-                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
+                    href="/employee/profile"
+                    className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
                   >
-                    <Clock className="h-4 w-4" />
-                    Employee Attendance
+                    <UserCheck className="h-5 w-5" />
+                    My Profile
                   </Link>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-4 rounded-xl px-4 py-3">
-                  <Package className="h-5 w-5" />
-                  Management
-                </div>
-                <div className="ml-8 space-y-1">
-                  <Link
-                    href="/admin/product"
-                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
-                  >
-                    <Package className="h-4 w-4" />
-                    Product
-                  </Link>
-                  <Link
-                    href="/admin/category-product"
-                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
-                  >
-                    <Package className="h-4 w-4" />
-                    Product Category
-                  </Link>
-                  {/* <Link
-                    href="/admin/featured-products"
-                    className="flex items-center gap-4 rounded-lg px-4 py-2 text-sm transition-all hover:bg-white/15 hover:backdrop-blur-sm"
-                  >
-                    <Package className="h-4 w-4" />
-                    Featured Products
-                  </Link> */}
-                </div>
-              </div>
-
-              <Link
-                href="/admin/feedback"
-                className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
-              >
-                <MessageSquare className="h-5 w-5" />
-                User Feedback
-              </Link>
-
-              <Link
-                href="/admin/reports"
-                className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:bg-white/20 hover:backdrop-blur-sm"
-              >
-                <FileText className="h-5 w-5" />
-                Reports
-              </Link>
+                </>
+              )}
             </nav>
           </div>
         </SheetContent>
@@ -188,7 +221,9 @@ const Header = () => {
         </div>
         <div className="hidden sm:block">
           <h1 className="text-xl font-bold text-gray-900">Pings Ping Tinapa</h1>
-          <p className="text-sm text-gray-600">Admin Dashboard</p>
+          <p className="text-sm text-gray-600">
+            {role === "admin" ? "Admin Dashboard" : "Employee Portal"}
+          </p>
         </div>
       </div>
 
@@ -217,9 +252,9 @@ const Header = () => {
                 <CircleUser className="h-4 w-4 text-[#f8610e]" />
               </div>
               <div>
-                <Label className="font-semibold">{username}</Label>
-                <p className="text-xs font-normal text-gray-600">
-                  Administrator
+                <Label className="font-semibold">{displayName}</Label>
+                <p className="text-xs font-normal text-gray-600 capitalize">
+                  {role}
                 </p>
               </div>
             </div>

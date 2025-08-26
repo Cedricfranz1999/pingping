@@ -5,6 +5,11 @@ generator client {
     provider = "prisma-client-js"
 }
 
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
 datasource db {
     provider = "postgresql"
     url      = env("DATABASE_URL")
@@ -20,18 +25,13 @@ model Post {
     @@index([name])
 }
 
-
 model Admin {
     id        Int      @id @default(autoincrement())
     username      String
     Password      String
 
-  
-
     @@index([username])
 }
-
-
 
 model Product {
   id          Int      @id @default(autoincrement())
@@ -47,6 +47,8 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   logs        ProductLog[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
 }
 
 model Category {
@@ -54,6 +56,7 @@ model Category {
   name     String   @unique   
   products ProductCategory[]
 }
+
 model ProductCategory {
   id         Int      @id @default(autoincrement())
   productId  Int
@@ -61,7 +64,6 @@ model ProductCategory {
   product    Product  @relation(fields: [productId], references: [id])
   category   Category @relation(fields: [categoryId], references: [id])
 }
-
 
 model ProductLog {
   id             Int       @id @default(autoincrement())
@@ -81,8 +83,6 @@ model ProductLog {
   @@index([productId])
   @@index([employeeId])
 }
-
-
 
 model Employee {
   id          Int       @id @default(autoincrement())
@@ -105,12 +105,17 @@ model Employee {
   updatedAt   DateTime  @updatedAt
 }
 
-
-
-
-
-
-
+model Inquiry {
+  id          Int     @id @default(autoincrement())
+  firstname   String
+  lastname    String
+  email       String?
+  phone       String
+  subject     String?
+  message     String  
+  createdAt  DateTime @default(now())
+  updatedAt   DateTime  @updatedAt
+}
 
 model Attendance {
   id          Int               @id @default(autoincrement())
@@ -127,16 +132,6 @@ model Attendance {
   @@index([employeeId, date])
 }
 
-enum AttendanceStatus {
-  OVERTIME
-  UNDERTIME
-  EXACT_TIME
-}
-enum ProductAction {
-  ADD
-  EDIT
-  DELETE
-}
 model Feedback {
   id        Int      @id @default(autoincrement())
   name      String
@@ -148,13 +143,144 @@ model Feedback {
   createdAt DateTime @default(now())
 }
 
+// New models for User, Guest, Cart, and Orders
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  address   String?
+  isActive  Boolean   @default(true)
+  
+  cart      Cart?
+  orders    UserOrder[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([email])
+}
+
+
+
+model Cart {
+  id        Int       @id @default(autoincrement())
+  userId    Int?
+  guestId   Int?
+  
+  user      User?     @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId])
+  @@unique([guestId])
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int
+  productId Int
+  quantity  Int     @default(1)
+  
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+}
+
+model UserOrder {
+  id        Int         @id @default(autoincrement())
+  orderNumber String    @unique
+  userId    Int?
+  status    OrderStatus @default(PENDING)
+  total     String
+  subtotal  String
+  shipping  String?
+  tax       String?
+  
+  email     String
+  firstName String
+  lastName  String
+  phone     String?
+  address   String
+  
+  // Payment information
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  
+  user      User?      @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     String  // Price at time of purchase
+  
+  order     UserOrder   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  GCASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
+enum AttendanceStatus {
+  OVERTIME
+  UNDERTIME
+  EXACT_TIME
+}
+
+enum ProductAction {
+  ADD
+  EDIT
+  DELETE
+}
 
 enum ProductType {
-
   TINAPA
   PASALUBONG
 }
-
 
 model Order {
   id          Int     @id @default(autoincrement())
@@ -163,7 +289,10 @@ model Order {
   email       String?
   phone       String
   subject     String?
-  message     String  
+  message     String
+  status      Boolean @default(false)
+
   createdAt  DateTime @default(now())
   updatedAt   DateTime  @updatedAt
+
 }

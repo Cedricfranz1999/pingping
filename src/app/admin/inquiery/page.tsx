@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { Edit, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, Plus, Search, Trash2, Check, X } from "lucide-react";
 import { api } from "~/trpc/react";
 
 // shadcn/ui imports
@@ -28,6 +28,7 @@ import { Label } from "~/components/ui/label";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Badge } from "~/components/ui/badge";
 
 const Order = () => {
   const [search, setSearch] = useState("");
@@ -43,6 +44,7 @@ const Order = () => {
     phone: string;
     subject?: string | null;
     message: string;
+    status: boolean;
   } | null>(null);
   const formSchema = z.object({
     firstname: z.string().min(1, "First name is required"),
@@ -96,6 +98,12 @@ const Order = () => {
     },
   });
 
+  const toggleStatus = api.orders.toggleStatus.useMutation({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
   const handleCreate = (data: FormData) => {
     createOrder.mutate({
       firstname: data.firstname,
@@ -125,6 +133,11 @@ const Order = () => {
     if (selectedOrder) {
       deleteOrder.mutate({ id: selectedOrder.id });
     }
+  };
+
+  const handleToggleStatus = (id: number, currentStatus: boolean) => {
+    console.log("current status",currentStatus)
+    toggleStatus.mutate({ id, status: !currentStatus });
   };
 
   const openEditModal = (order: typeof selectedOrder) => {
@@ -180,6 +193,7 @@ const Order = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Subject</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -194,7 +208,35 @@ const Order = () => {
                     <TableCell>{order.email}</TableCell>
                     <TableCell>{order.phone}</TableCell>
                     <TableCell>{order.subject}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={order.status ? "default" : "secondary"}
+                        className={
+                          order.status
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "bg-red-500 hover:bg-gray-600 text-white"
+                        }
+                      >
+                        {order.status ? "Actioned" : "Pending"}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="flex justify-end space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleToggleStatus(order.id, order.status)}
+                        className={
+                          order.status
+                            ? "hover:bg-gray-100"
+                            : "hover:bg-green-100"
+                        }
+                      >
+                        {order.status ? (
+                          <X className="h-4 w-4 text-gray-600" />
+                        ) : (
+                          <Check className="h-4 w-4 text-green-600" />
+                        )}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -219,7 +261,7 @@ const Order = () => {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="py-6 text-center text-gray-500"
                   >
                     No orders found
@@ -339,12 +381,11 @@ const Order = () => {
                 id="message"
                 rows={4}
                 {...register("message")}
-                className={`... ${errors.message ? "border-red-500" : ""} w-full`}
+                className={`w-full rounded-md border px-3 py-2 text-sm ${
+                  errors.message ? "border-red-500" : ""
+                }`}
                 placeholder="Enter message"
               />
-              {errors.message && (
-                <p className="text-sm text-red-500">{errors.message.message}</p>
-              )}
               {errors.message && (
                 <p className="text-sm text-red-500">{errors.message.message}</p>
               )}
@@ -450,7 +491,7 @@ const Order = () => {
                 id="edit-message"
                 rows={4}
                 {...register("message")}
-                className={`border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`w-full rounded-md border px-3 py-2 text-sm ${
                   errors.message ? "border-red-500" : ""
                 }`}
                 placeholder="Enter message"

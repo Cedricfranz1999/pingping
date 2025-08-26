@@ -1,9 +1,9 @@
+// ~/server/api/routers/auth.ts
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 export const authRouter = createTRPCRouter({
-  // Login procedure
   login: publicProcedure
     .input(
       z.object({
@@ -12,59 +12,87 @@ export const authRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // First try to find an admin
       const admin = await ctx.db.admin.findFirst({
         where: { username: input.username },
       });
 
-      if (!admin) {
+      if (admin) {
+        const isValid = await bcrypt.compare(input.password, admin.Password);
+        if (!isValid) {
+          throw new Error("Invalid username or password");
+        }
+
+        return {
+          message: "Login successful",
+          userId: admin.id,
+          username: admin.username,
+          role: "admin",
+        };
+      }
+
+      // If not an admin, try to find an employee
+      const employee = await ctx.db.employee.findFirst({
+        where: { 
+          username: input.username,
+          isactive: true, // Only allow active employees
+        },
+      });
+
+      if (!employee) {
         throw new Error("Invalid username or password");
       }
 
-      const isValid = await bcrypt.compare(input.password, admin.Password);
+      // For employees, we need to compare passwords (assuming they're hashed)
+      const isValid = await bcrypt.compare(input.password, employee.password);
       if (!isValid) {
         throw new Error("Invalid username or password");
       }
 
-      // For now, return minimal info (you can add JWT/session logic later)
       return {
         message: "Login successful",
-        adminId: admin.id,
-        username: admin.username,
+        userId: employee.id,
+        username: employee.username,
+        role: "employee",
+        firstName: employee.firstname,
+        lastName: employee.lastname,
       };
     }),
 
-  // Register procedure (optional)
-  register: publicProcedure
+     employeeLogin: publicProcedure
     .input(
       z.object({
         username: z.string().min(1, "Username is required"),
-        password: z.string().min(6, "Password must be at least 6 characters"),
+        password: z.string().min(1, "Password is required"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if username already exists
-      const exists = await ctx.db.admin.findFirst({
-        where: { username: input.username },
-      });
-
-      if (exists) {
-        throw new Error("Username already taken");
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(input.password, 10);
-
-      const newAdmin = await ctx.db.admin.create({
-        data: {
+      // Find employee with matching username
+      const employee = await ctx.db.employee.findFirst({
+        where: { 
           username: input.username,
-          Password: hashedPassword,
+          isactive: true, // Only allow active employees
         },
       });
 
+      if (!employee) {
+        throw new Error("Invalid username or password");
+      }
+
+      // Compare passwords
+      const isValid = await bcrypt.compare(input.password, employee.password);
+      if (!isValid) {
+        throw new Error("Invalid username or password");
+      }
+
       return {
-        message: "Admin registered successfully",
-        adminId: newAdmin.id,
-        username: newAdmin.username,
+        message: "Login successful",
+        userId: employee.id,
+        username: employee.username,
+        role: "employee",
+        firstName: employee.firstname,
+        lastName: employee.lastname,
+        canModify: employee.canModify, // Add this line
       };
     }),
 });

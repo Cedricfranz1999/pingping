@@ -621,25 +621,25 @@ export default function ImprovedHomePage() {
                   className="object-cover"
                 />
               </div>
-                    <CardContent className="space-y-4 p-6">
-          <h4 className="text-xl font-bold text-gray-900">{name}</h4>
-          <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-          <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
+         <CardContent className="space-y-4 p-6">
+  <h4 className="text-xl font-bold text-gray-900">{name}</h4>
+  <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+  <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
 
-          <div className="mt-6 space-y-3">
-            <Button
-              className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
-            >
-              Order now
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
-            >
-              Add to cart
-            </Button>
-          </div>
-        </CardContent>
+  <div className="mt-6 space-y-3">
+    <Button
+      className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
+    >
+      Order now
+    </Button>
+    <Button
+      variant="outline"
+      className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
+    >
+      Add to cart
+    </Button>
+  </div>
+</CardContent>
 
             </Card>
           ))}
@@ -667,20 +667,26 @@ export default function ImprovedHomePage() {
                   className="object-cover"
                 />
               </div>
-              <CardContent className="space-y-2 p-6">
-                <h4 className="text-lg font-semibold text-gray-900">{name}</h4>
-                <p className="text-gray-600">{description}</p>
-                <p className="mt-3 font-bold text-[#f8610e]">{price}</p>
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("inquire");
-                  }}
-                  className="mt-4 w-full rounded-full bg-[#f8610e] text-white hover:bg-[#f8610e]/90"
-                >
-                  Order now
-                </Button>
-              </CardContent>
+            <CardContent className="space-y-4 p-6">
+  <h4 className="text-xl font-bold text-gray-900">₱{name}</h4>
+  <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+  <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
+
+  <div className="mt-6 space-y-3">
+    <Button
+      className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
+    >
+      Order now
+    </Button>
+    <Button
+      variant="outline"
+      className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
+    >
+      Add to cart
+    </Button>
+  </div>
+</CardContent>
+
             </Card>
           ))}
         </div>
