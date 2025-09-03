@@ -157,7 +157,7 @@ const Sidebar = () => {
                       <Link
                         href="/admin/inquiry"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/order")
+                          isActive("/admin/inquiry")
                             ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                             : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                         }`}
@@ -171,6 +171,25 @@ const Sidebar = () => {
                         />
                         Inquiry
                       </Link>
+                           <Link
+                        href="/admin/orders"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/orders")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Users
+                          className={`h-4 w-4 ${
+                            isActive("/admin/orders")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                      Users Order
+                      </Link>
+
+                     
                           <Link
                         href="/admin/walk-in"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${

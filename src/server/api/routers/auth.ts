@@ -95,4 +95,41 @@ export const authRouter = createTRPCRouter({
         canModify: employee.canModify, // Add this line
       };
     }),
+      userLogin: publicProcedure
+    .input(
+      z.object({
+        username: z.string().min(1, "Username is required"),
+        password: z.string().min(1, "Password is required"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.user.findFirst({
+        where: { 
+          username: input.username,
+          isActive: true,
+        },
+      });
+
+
+      if (!user) {
+        throw new Error("Invalid username or password");
+      }
+
+      const isValid = await bcrypt.compare(input.password, user.password);
+      if (!isValid) {
+        throw new Error("Invalid username or password");
+      }
+
+      const userRole = 'user'; 
+      
+
+      return {
+        message: "Login successful",
+        userId: user.id,
+        username: user.username,
+        role: userRole,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      };
+    }),
 });

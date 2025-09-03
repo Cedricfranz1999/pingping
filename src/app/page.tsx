@@ -670,7 +670,7 @@ export default function ImprovedHomePage() {
             <CardContent className="space-y-4 p-6">
   <h4 className="text-xl font-bold text-gray-900">₱{name}</h4>
   <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-  <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
+<p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
 
   <div className="mt-6 space-y-3">
     <Button

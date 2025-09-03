@@ -71,7 +71,25 @@ export const productsRouter = createTRPCRouter({
     return ["All", ...categories.map((c) => c.name)];
   }),
 
-  create: publicProcedure
+  getAllSimple: publicProcedure
+  .query(async ({ ctx }) => {
+    const products = await ctx.db.product.findMany({
+      include: {
+        categories: {
+          include: {
+            category: true
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return products;
+  }),
+
+    create: publicProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -200,5 +218,42 @@ export const productsRouter = createTRPCRouter({
         },
       },
     });
+
+    // INVENTORY
+    
   }),
+
+
+
+  // Decrease stock
+  decreaseStock: publicProcedure
+    .input(z.object({ 
+      id: z.number(),
+      quantity: z.number().min(1)
+    }))
+    .mutation(async ({ input }) => {
+      return await db.product.update({
+        where: { id: input.id },
+        data: {
+          stock: {
+            decrement: input.quantity,
+          },
+        },
+      });
+    }),
+
+  // Update stock
+  updateStock: publicProcedure
+    .input(z.object({ 
+      id: z.number(),
+      stock: z.number().min(0)
+    }))
+    .mutation(async ({ input }) => {
+      return await db.product.update({
+        where: { id: input.id },
+        data: {
+          stock: input.stock,
+        },
+      });
+    }),
 });

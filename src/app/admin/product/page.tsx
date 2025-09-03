@@ -293,7 +293,7 @@ const ProductsPage: NextPage = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((category) => (
+                  {categories?.map((category:any) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -425,7 +425,7 @@ const ProductsPage: NextPage = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    productsData?.products.map((product) => (
+                    productsData?.products.map((product:any) => (
                       <TableRow key={product.id} className="hover:bg-muted/50">
                         <TableCell>
                           <Avatar className="h-10 w-10">
@@ -671,8 +671,8 @@ const ProductsPage: NextPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {categories
-                    ?.filter((c) => c !== "All")
-                    .map((category) => (
+                    ?.filter((c:any) => c !== "All")
+                    .map((category:any) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
@@ -826,7 +826,7 @@ const ProductsPage: NextPage = () => {
                 <SelectContent>
                   {categories
                     ?.filter((c) => c !== "All")
-                    .map((category) => (
+                    .map((category:any) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
