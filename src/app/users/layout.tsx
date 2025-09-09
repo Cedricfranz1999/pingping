@@ -5,10 +5,18 @@ import type React from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+import { useAuthStore } from "../store/auth-store";
+import { useEffect } from "react";
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
 
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== "user") {
+      router.push("/user-login");
+    }
+  }, [user, isAuthenticated, router]);
   return (
     <div className="min-h-screen bg-orange-50 bg-cover bg-fixed bg-no-repeat">
       {/* Fixed Sidebar */}

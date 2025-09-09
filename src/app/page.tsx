@@ -15,12 +15,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 export default function ImprovedHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 3;
@@ -628,12 +628,16 @@ export default function ImprovedHomePage() {
 
   <div className="mt-6 space-y-3">
     <Button
+            onClick={() => router.push("/users/products")}
+
       className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
     >
       Order now
     </Button>
     <Button
       variant="outline"
+              onClick={() => router.push("/users/products")}
+
       className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
     >
       Add to cart
@@ -672,19 +676,22 @@ export default function ImprovedHomePage() {
   <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
 <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
 
-  <div className="mt-6 space-y-3">
-    <Button
-      className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
-    >
-      Order now
-    </Button>
-    <Button
-      variant="outline"
-      className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
-    >
-      Add to cart
-    </Button>
-  </div>
+   <div className="mt-6 space-y-3">
+      <Button
+        className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
+        onClick={() => router.push("/users/products")}
+      >
+        Order now
+      </Button>
+
+      <Button
+        variant="outline"
+        className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
+        onClick={() => router.push("/users/products")}
+      >
+        Add to cart
+      </Button>
+    </div>
 </CardContent>
 
             </Card>

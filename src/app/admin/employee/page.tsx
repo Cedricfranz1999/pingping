@@ -13,6 +13,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
+import { QRCodeSVG } from "qrcode.react"; // Change this import
+import { QRCodeCanvas } from "qrcode.react";
+
 import {
   Table,
   TableBody,
@@ -53,6 +56,7 @@ import {
   Users,
   Upload,
   X,
+  QrCode,
   Loader2,
 } from "lucide-react";
 import { api } from "~/trpc/react";
@@ -81,6 +85,8 @@ const EmployeePage = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [selectedEmployeeForQr, setSelectedEmployeeForQr] = useState<Employee | null>(null);
 
   const {
     data: employeeData,
@@ -310,6 +316,10 @@ const EmployeePage = () => {
   const totalEmployees = employeeData?.total || 0;
   const activeEmployees = employees.filter((emp) => emp.isactive).length;
   const modifyEmployees = employees.filter((emp) => emp.canModify).length;
+  const handleGenerateQr = (employee: Employee) => {
+    setSelectedEmployeeForQr(employee);
+    setIsQrDialogOpen(true);
+  };
 
   const ImagePreview = ({
     imageData,
@@ -710,6 +720,15 @@ const EmployeePage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                         <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleGenerateQr(employee as any)}
+                        className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
+                      >
+                        <QrCode className="h-4 w-4" />
+                        <span className="ml-1">QR Code</span>
+                      </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -764,6 +783,7 @@ const EmployeePage = () => {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
+                            
                             <Button
                               size="sm"
                               variant="outline"
@@ -973,6 +993,67 @@ const EmployeePage = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+         <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#f8610e]">
+              Employee QR Code
+            </DialogTitle>
+          </DialogHeader>
+{selectedEmployeeForQr && (
+  <div className="flex flex-col items-center space-y-4">
+    <div className="rounded-lg border-2 border-[#f8610e]/20 p-4">
+      <QRCodeCanvas
+        value={selectedEmployeeForQr.id.toString()}
+        size={256}
+        level="H"
+        includeMargin
+        id="qrcode-canvas"
+      />
+    </div>
+    <div className="text-center">
+      <p className="font-semibold">
+        {selectedEmployeeForQr.firstname} {selectedEmployeeForQr.lastname}
+      </p>
+      <p className="text-muted-foreground text-sm">
+        ID: {selectedEmployeeForQr.id}
+      </p>
+      <p className="text-muted-foreground text-sm">
+        Username: {selectedEmployeeForQr.username}
+      </p>
+    </div>
+    <div className="flex justify-center gap-2">
+      <Button
+        onClick={() => {
+          const canvas = document.getElementById("qrcode-canvas") as HTMLCanvasElement;
+          if (!canvas) return;
+
+          try {
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = `employee-${selectedEmployeeForQr.id}-qrcode.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+          } catch (error) {
+            console.error("Error downloading QR code:", error);
+            toast({
+              title: "Error",
+              description: "Failed to download QR code",
+              variant: "destructive",
+            });
+          }
+        }}
+        className="bg-[#f8610e] hover:bg-[#f8610e]/90"
+      >
+        Download QR Code (PNG)
+      </Button>
+    </div>
+  </div>
+)}
         </DialogContent>
       </Dialog>
     </div>
