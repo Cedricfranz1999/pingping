@@ -1,61 +1,49 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
-
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-    directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@index([name])
+  @@index([name])
 }
 
 model Admin {
-    id        Int      @id @default(autoincrement())
-    username      String
-    Password      String
+  id       Int    @id @default(autoincrement())
+  username String
+  Password String
 
-    @@index([username])
+  @@index([username])
 }
 
 model Product {
-  id          Int              @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   image       String?
   name        String
   description String
   stock       Int
   price       String
-  productType ProductType 
-  categories  ProductCategory[]
-
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  logs        ProductLog[]
+  productType ProductType
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  cartItems   CartItem[]
   orderItems  OrderItem[]
-  cartItems  CartItem[]
-
+  categories  ProductCategory[]
+  logs        ProductLog[]
 }
 
 model User {
   id        Int         @id @default(autoincrement())
   email     String      @unique
-  username  String
   password  String
   firstName String
   lastName  String
@@ -64,63 +52,60 @@ model User {
   isActive  Boolean     @default(true)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
-  carts    Cart[]
-  orders    UserOrder[] 
+  username  String
+  carts     Cart?
+  orders    UserOrder[]
 
   @@index([email])
 }
 
 model UserOrder {
-  id           Int          @id @default(autoincrement())
-  orderNumber  String       @unique
-  userId       Int?
-  totalPrice   Float
-  status       OrderStatus  @default(PENDING)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  orderItems   OrderItem[]
-  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          Int         @id @default(autoincrement())
+  orderNumber String      @unique
+  userId      Int?
+  totalPrice  Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  status      OrderStatus @default(PENDING)
+  orderItems  OrderItem[]
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_orders")
 }
 
-
 model OrderItem {
   id        Int       @id @default(autoincrement())
-  order     UserOrder @relation(fields: [orderId], references: [id])
   orderId   Int
-  product   Product   @relation(fields: [productId], references: [id])
   productId Int
   quantity  Int
   price     Float
+  order     UserOrder @relation(fields: [orderId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
 }
 
-
 model Cart {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@unique([userId])
 }
 
 model CartItem {
   id        Int     @id @default(autoincrement())
   cartId    Int
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int     @default(1)
-  
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
   @@unique([cartId, productId])
 }
 
 model Category {
-  id       Int      @id @default(autoincrement())
-  name     String   @unique   
+  id       Int               @id @default(autoincrement())
+  name     String            @unique
   products ProductCategory[]
 }
 
@@ -128,77 +113,70 @@ model ProductCategory {
   id         Int      @id @default(autoincrement())
   productId  Int
   categoryId Int
-  product    Product  @relation(fields: [productId], references: [id])
   category   Category @relation(fields: [categoryId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
 }
 
 model ProductLog {
-  id             Int       @id @default(autoincrement())
-  productId      Int
-  employeeId     Int
-  action         ProductAction
-  oldImage       String?
-  oldStock       Int?
-  oldPrice       String?
-  newStock       Int?
-  newPrice       String?
-  timestamp      DateTime  @default(now())
-
-  product        Product   @relation(fields: [productId], references: [id])
-  employee       Employee  @relation(fields: [employeeId], references: [id])
+  id         Int           @id @default(autoincrement())
+  productId  Int
+  employeeId Int
+  action     ProductAction
+  oldImage   String?
+  oldStock   Int?
+  oldPrice   String?
+  newStock   Int?
+  newPrice   String?
+  timestamp  DateTime      @default(now())
+  employee   Employee      @relation(fields: [employeeId], references: [id])
+  product    Product       @relation(fields: [productId], references: [id])
 
   @@index([productId])
   @@index([employeeId])
 }
 
+model Inquiry {
+  id        Int      @id @default(autoincrement())
+  firstname String
+  lastname  String
+  email     String?
+  phone     String
+  subject   String?
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id         Int               @id @default(autoincrement())
+  employeeId Int
+  date       DateTime          @default(now())
+  timeIn     DateTime?
+  timeOut    DateTime?
+  status     AttendanceStatus?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  employee   Employee          @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, date])
+}
+
 model Employee {
-  id          Int       @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   image       String?
   firstname   String
   middlename  String?
   lastname    String
-  username    String    @unique
+  username    String       @unique
   password    String
   address     String
   gender      String
-  isactive    Boolean?  @default(true)
-
-  canModify   Boolean   @default(false) 
-
-  attendances Attendance[]  
+  isactive    Boolean?     @default(true)
+  canModify   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  attendances Attendance[]
   productLogs ProductLog[]
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-
-
-model Inquiry {
-  id          Int     @id @default(autoincrement())
-  firstname   String
-  lastname    String
-  email       String?
-  phone       String
-  subject     String?
-  message     String  
-  createdAt  DateTime @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Attendance {
-  id          Int               @id @default(autoincrement())
-  employeeId  Int
-  date        DateTime          @default(now())
-  timeIn      DateTime?
-  timeOut     DateTime?
-  status      AttendanceStatus? 
-  employee    Employee          @relation(fields: [employeeId], references: [id])
-
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  @@index([employeeId, date])
 }
 
 model Feedback {
@@ -207,11 +185,29 @@ model Feedback {
   email     String
   address   String
   contact   String
-  star      Int      
+  star      Int
   feedback  String
   createdAt DateTime @default(now())
 }
 
+model Order {
+  id        Int      @id @default(autoincrement())
+  firstname String
+  lastname  String
+  email     String?
+  phone     String
+  subject   String?
+  message   String
+  status    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AttendanceStatus {
+  OVERTIME
+  UNDERTIME
+  EXACT_TIME
+}
 
 enum OrderStatus {
   PENDING
@@ -235,12 +231,6 @@ enum PaymentMethod {
   DEBIT_CARD
 }
 
-enum AttendanceStatus {
-  OVERTIME
-  UNDERTIME
-  EXACT_TIME
-}
-
 enum ProductAction {
   ADD
   EDIT
@@ -250,19 +240,4 @@ enum ProductAction {
 enum ProductType {
   TINAPA
   PASALUBONG
-}
-
-model Order {
-  id          Int     @id @default(autoincrement())
-  firstname   String
-  lastname    String
-  email       String?
-  phone       String
-  subject     String?
-  message     String
-  status      Boolean @default(false)
-
-  createdAt  DateTime @default(now())
-  updatedAt   DateTime  @updatedAt
-
 }

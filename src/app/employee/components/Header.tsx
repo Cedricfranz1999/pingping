@@ -33,20 +33,19 @@ import { useAuthStore } from "~/app/store/auth-store";
 
 const Header = () => {
   const router = useRouter();
-  
+
   // Get user data from Zustand store
   const { user, logout, isAuthenticated } = useAuthStore();
-  console.log("54321",user)
-  
-const handleLogout = () => {
-  logout();
-  if (user?.role === "admin") {
-    router.push("/admin-sign-in");
-  } else {
-    router.push("/employee-login"); 
-  }
-};
+  console.log("54321", user);
 
+  const handleLogout = () => {
+    logout();
+    if (user?.role === "admin") {
+      router.push("/admin-sign-in");
+    } else {
+      router.push("/employee-login");
+    }
+  };
 
   // Get username from auth store
   const username = user?.username || "User";
@@ -55,9 +54,8 @@ const handleLogout = () => {
   const lastName = user?.lastName || "";
 
   // Determine display name
-  const displayName = firstName && lastName 
-    ? `${firstName} ${lastName}` 
-    : username;
+  const displayName =
+    firstName && lastName ? `${firstName} ${lastName}` : username;
 
   return (
     <motion.header
@@ -261,10 +259,10 @@ const handleLogout = () => {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-[#f8610e]/20" />
-          <DropdownMenuItem className="mx-1 cursor-pointer rounded-lg text-gray-700 hover:bg-[#f8610e]/10 hover:text-[#f8610e]">
+          {/* <DropdownMenuItem className="mx-1 cursor-pointer rounded-lg text-gray-700 hover:bg-[#f8610e]/10 hover:text-[#f8610e]">
             <Settings className="mr-3 h-4 w-4" />
             Settings
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
           <DropdownMenuSeparator className="bg-[#f8610e]/20" />
           <DropdownMenuItem
             className="mx-1 cursor-pointer rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700"

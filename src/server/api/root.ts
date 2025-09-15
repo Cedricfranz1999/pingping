@@ -12,6 +12,7 @@ import { attendanceRecordRouter } from "./routers/attendance-record";
 import { ordersRouter } from "./routers/order";
 import { ordersProductRouter } from "./routers/orderProduct";
 import { salesRouter } from "./routers/sales";
+import { qrCodeRouterRouter } from "./routers/qrcode";
 
 /**
  * This is the primary router for your server.
@@ -31,8 +32,8 @@ export const appRouter = createTRPCRouter({
   attendanceRecord: attendanceRecordRouter,
   orders: ordersRouter,
   ordersProduct: ordersProductRouter,
-  sales:salesRouter
-
+  sales: salesRouter,
+  QrCode: qrCodeRouterRouter,
 });
 
 // export type definition of API
