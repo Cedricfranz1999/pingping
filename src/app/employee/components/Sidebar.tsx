@@ -21,13 +21,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "~/app/store/auth-store";
 
 const Sidebar = () => {
-  const { user, logout, isAuthenticated } = useAuthStore();    
+  const { user, logout, isAuthenticated } = useAuthStore();
   const pathname = usePathname();
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
-
-  // Check if user has modify permissions
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
+    {},
+  );
   const userCanModify = user?.canModify;
-  
   const isActive = (path: string) => pathname.startsWith(path);
 
   const toggleMenu = (menu: string) => {
@@ -65,7 +64,7 @@ const Sidebar = () => {
                 <Label className="text-lg font-bold text-white">
                   Pings Ping Tinapa
                 </Label>
-                <p className="text-xs text-white/80">Admin Dashboard</p>
+                <p className="text-xs text-white/80">Employee Dashboard</p>
               </div>
             </div>
           </motion.div>
@@ -73,7 +72,6 @@ const Sidebar = () => {
           {/* Navigation */}
           <div className="mt-6 flex-1 px-4">
             <nav className="space-y-2">
-              {/* If user can't modify, show only Attendance */}
               {!userCanModify ? (
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -81,7 +79,7 @@ const Sidebar = () => {
                   transition={{ duration: 0.3, delay: 0.3 }}
                   className="space-y-1"
                 >
-                  <div className="flex items-center">
+                  {/* <div className="flex items-center">
                     <Link
                       href="/employee/attendance"
                       className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
@@ -99,7 +97,7 @@ const Sidebar = () => {
                       />
                       Attendance
                     </Link>
-                  </div>
+                  </div> */}
                 </motion.div>
               ) : (
                 <>
@@ -110,16 +108,16 @@ const Sidebar = () => {
                     transition={{ duration: 0.3, delay: 0.1 }}
                   >
                     <Link
-                      href="/admin/dashboard"
+                      href="/employee/dashboard"
                       className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                        isActive("/admin/dashboard")
+                        isActive("/employee/dashboard")
                           ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
                           : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
                       }`}
                     >
                       <LayoutDashboard
                         className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                          isActive("/admin/dashboard")
+                          isActive("/employee/dashboard")
                             ? "text-[#f8610e]"
                             : "text-white"
                         }`}
@@ -177,7 +175,6 @@ const Sidebar = () => {
                         </AnimatePresence>
                       </motion.button>
                     </div>
-
                     <AnimatePresence>
                       {expandedMenus["/track-orders"] && (
                         <motion.div
@@ -188,16 +185,16 @@ const Sidebar = () => {
                           className="ml-6 space-y-1 overflow-hidden"
                         >
                           <Link
-                            href="/admin/inquiry"
+                            href="/employee/inquiry"
                             className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                              isActive("/admin/order")
+                              isActive("/employee/inquiry")
                                 ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                                 : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                             }`}
                           >
                             <ListOrdered
                               className={`h-4 w-4 ${
-                                isActive("/admin/inquiry")
+                                isActive("/employee/inquiry")
                                   ? "text-[#f8610e]"
                                   : "text-white/90"
                               }`}
@@ -205,33 +202,33 @@ const Sidebar = () => {
                             Inquiry
                           </Link>
                           <Link
-                            href="/admin/walk-in"
+                            href="/employee/walk-in"
                             className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                              isActive("/admin/walk-in")
+                              isActive("/employee/walk-in")
                                 ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                                 : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                             }`}
                           >
                             <ListOrdered
                               className={`h-4 w-4 ${
-                                isActive("/admin/walk-in")
+                                isActive("/employee/walk-in")
                                   ? "text-[#f8610e]"
                                   : "text-white/90"
                               }`}
                             />
-                            Walk in
+                            Order
                           </Link>
                           <Link
-                            href="/admin/sales"
+                            href="/employee/sales"
                             className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                              isActive("/admin/sales")
+                              isActive("/employee/sales")
                                 ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                                 : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                             }`}
                           >
                             <FileText
                               className={`h-4 w-4 ${
-                                isActive("/admin/sales")
+                                isActive("/employee/sales")
                                   ? "text-[#f8610e]"
                                   : "text-white/90"
                               }`}
@@ -239,16 +236,16 @@ const Sidebar = () => {
                             Sales
                           </Link>
                           <Link
-                            href="/admin/inventory"
+                            href="/employee/inventory"
                             className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                              isActive("/admin/inventory")
+                              isActive("/employee/inventory")
                                 ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                                 : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                             }`}
                           >
                             <Package
                               className={`h-4 w-4 ${
-                                isActive("/admin/inventory")
+                                isActive("/employee/inventory")
                                   ? "text-[#f8610e]"
                                   : "text-white/90"
                               }`}
@@ -258,34 +255,6 @@ const Sidebar = () => {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </motion.div>
-
-                  {/* Employee - with expandable children */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.3 }}
-                    className="space-y-1"
-                  >
-                    <div className="flex items-center">
-                      <Link
-                        href="/employee/attendance"
-                        className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                          isActive("/employee/attendance")
-                            ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
-                            : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <Clock
-                          className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                            isActive("/employee/attendance")
-                              ? "text-[#f8610e]"
-                              : "text-white"
-                          }`}
-                        />
-                        Attendance
-                      </Link>
-                    </div>
                   </motion.div>
 
                   {/* Products - with expandable children */}
@@ -337,7 +306,6 @@ const Sidebar = () => {
                         </AnimatePresence>
                       </motion.button>
                     </div>
-
                     <AnimatePresence>
                       {expandedMenus["/products"] && (
                         <motion.div
@@ -347,37 +315,34 @@ const Sidebar = () => {
                           transition={{ duration: 0.3 }}
                           className="ml-6 space-y-1 overflow-hidden"
                         >
-                          {/* Product */}
                           <Link
-                            href="/admin/product"
+                            href="/employee/product"
                             className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                              isActive("/admin/product")
+                              isActive("/employee/product")
                                 ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                                 : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                             }`}
                           >
                             <Package
                               className={`h-4 w-4 ${
-                                isActive("/admin/product")
+                                isActive("/employee/product")
                                   ? "text-[#f8610e]"
                                   : "text-white/90"
                               }`}
                             />
                             Product
                           </Link>
-
-                          {/* Product Category */}
                           <Link
-                            href="/admin/category-product"
+                            href="/employee/category-product"
                             className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                              isActive("/admin/category-product")
+                              isActive("/employee/category-product")
                                 ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
                                 : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
                             }`}
                           >
                             <Package
                               className={`h-4 w-4 ${
-                                isActive("/admin/category-product")
+                                isActive("/employee/category-product")
                                   ? "text-[#f8610e]"
                                   : "text-white/90"
                               }`}
@@ -396,16 +361,16 @@ const Sidebar = () => {
                     transition={{ duration: 0.3, delay: 0.6 }}
                   >
                     <Link
-                      href="/admin/reports"
+                      href="/employee/reports"
                       className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                        isActive("/admin/reports")
+                        isActive("/employee/reports")
                           ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
                           : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
                       }`}
                     >
                       <FileText
                         className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                          isActive("/admin/reports")
+                          isActive("/employee/reports")
                             ? "text-[#f8610e]"
                             : "text-white"
                         }`}
@@ -425,7 +390,7 @@ const Sidebar = () => {
                 Pings Ping Tinapa
               </p>
               <p className="text-center text-xs text-white/60">
-                Admin Panel v1.0
+                Employee Panel v1.0
               </p>
             </div>
           </div>

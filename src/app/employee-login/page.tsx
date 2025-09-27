@@ -30,13 +30,11 @@ export default function LoginPage() {
         role: "employee",
         firstName: data.firstName,
         lastName: data.lastName,
-        canModify:data.canModify
-
+        canModify: data.canModify,
       });
-      
+
       // Redirect based on role
-        router.push("/employee/attendance");
-     
+      router.push("/employee/dashboard");
     },
     onError: (error) => {
       setError(error.message);
@@ -104,9 +102,7 @@ export default function LoginPage() {
               <h1 className="mb-2 text-2xl font-bold text-gray-900">
                 Welcome Back
               </h1>
-              <p className="text-gray-600">
-                Sign in to your account
-              </p>
+              <p className="text-gray-600">Sign in to your account</p>
             </motion.div>
 
             {/* Login Form */}

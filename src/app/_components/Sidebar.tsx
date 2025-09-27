@@ -24,9 +24,7 @@ const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
     {},
   );
-
   const isActive = (path: string) => pathname.startsWith(path);
-
   const toggleMenu = (menu: string) => {
     setExpandedMenus((prev) => ({
       ...prev,
@@ -144,7 +142,6 @@ const Sidebar = () => {
                     </AnimatePresence>
                   </motion.button>
                 </div>
-
                 <AnimatePresence>
                   {expandedMenus["/track-orders"] && (
                     <motion.div
@@ -155,42 +152,6 @@ const Sidebar = () => {
                       className="ml-6 space-y-1 overflow-hidden"
                     >
                       <Link
-                        href="/admin/inquiry"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/inquiry")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <ListOrdered
-                          className={`h-4 w-4 ${
-                            isActive("/admin/inquiry")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        Inquiry
-                      </Link>
-                           <Link
-                        href="/admin/orders"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/orders")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <Users
-                          className={`h-4 w-4 ${
-                            isActive("/admin/orders")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                      Users Order
-                      </Link>
-
-                     
-                          <Link
                         href="/admin/walk-in"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
                           isActive("/admin/walk-in")
@@ -205,7 +166,24 @@ const Sidebar = () => {
                               : "text-white/90"
                           }`}
                         />
-                        Walk in
+                        process orders
+                      </Link>
+                      <Link
+                        href="/admin/orders"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/orders")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Users
+                          className={`h-4 w-4 ${
+                            isActive("/admin/orders")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Order History
                       </Link>
                       <Link
                         href="/admin/sales"
@@ -240,6 +218,23 @@ const Sidebar = () => {
                           }`}
                         />
                         Inventory
+                      </Link>
+                      <Link
+                        href="/admin/inquiry"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/inquiry")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <ListOrdered
+                          className={`h-4 w-4 ${
+                            isActive("/admin/inquiry")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Inquiry
                       </Link>
                     </motion.div>
                   )}
@@ -302,7 +297,6 @@ const Sidebar = () => {
                     </AnimatePresence>
                   </motion.button>
                 </div>
-
                 <AnimatePresence>
                   {expandedMenus["/employee"] && (
                     <motion.div
@@ -329,8 +323,11 @@ const Sidebar = () => {
                         />
                         Employee Management
                       </Link>
+
                       <Link
-                        href="/admin/attendance"
+                        href="/qrcode_attendance"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
                           isActive("/admin/attendance")
                             ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
@@ -346,7 +343,6 @@ const Sidebar = () => {
                         />
                         Employee Attendance
                       </Link>
-
                       <Link
                         href="/admin/record-attendance"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
@@ -378,7 +374,11 @@ const Sidebar = () => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${expandedMenus["/products"] ? "bg-white/20 backdrop-blur-sm" : "hover:bg-white/20 hover:backdrop-blur-sm"}`}
+                    className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${
+                      expandedMenus["/products"]
+                        ? "bg-white/20 backdrop-blur-sm"
+                        : "hover:bg-white/20 hover:backdrop-blur-sm"
+                    }`}
                   >
                     <Package className="h-5 w-5" />
                     Management
@@ -414,7 +414,6 @@ const Sidebar = () => {
                     </AnimatePresence>
                   </motion.button>
                 </div>
-
                 <AnimatePresence>
                   {expandedMenus["/products"] && (
                     <motion.div
@@ -424,7 +423,6 @@ const Sidebar = () => {
                       transition={{ duration: 0.3 }}
                       className="ml-6 space-y-1 overflow-hidden"
                     >
-                      {/* Product */}
                       <Link
                         href="/admin/product"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
@@ -442,8 +440,6 @@ const Sidebar = () => {
                         />
                         Product
                       </Link>
-
-                      {/* Product Category */}
                       <Link
                         href="/admin/category-product"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${

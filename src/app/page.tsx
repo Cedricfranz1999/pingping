@@ -18,19 +18,16 @@ import { useState, useEffect } from "react";
 import { api } from "~/trpc/react";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 export default function ImprovedHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 3;
-
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.4, ease: "easeOut" },
   };
-
   const staggerContainer = {
     animate: {
       transition: {
@@ -38,7 +35,6 @@ export default function ImprovedHomePage() {
       },
     },
   };
-
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -48,7 +44,6 @@ export default function ImprovedHomePage() {
       });
     }
   };
-
   // Auto-advance carousel
   useEffect(() => {
     const timer = setInterval(() => {
@@ -56,25 +51,20 @@ export default function ImprovedHomePage() {
     }, 3000);
     return () => clearInterval(timer);
   }, []);
-
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % totalSlides);
   };
-
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
-
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
   };
   const router = useRouter();
-
   const { data: products, isLoading: loadingTinapa } =
     api.product.getTinapaProducts.useQuery();
   const { data: pasalubongItems, isLoading: loadingPasalubong } =
     api.product.getPasalubongProducts.useQuery();
-
   // 12 pasalubong items, all with pasalubonghd.png placeholder
   const formSchema = z.object({
     firstname: z.string().min(1, "First name is required"),
@@ -87,9 +77,7 @@ export default function ImprovedHomePage() {
     subject: z.string().optional(),
     message: z.string().min(1, "Message is required"),
   });
-
   type FormData = z.infer<typeof formSchema>;
-
   // Form state and methods
   const {
     register,
@@ -99,12 +87,9 @@ export default function ImprovedHomePage() {
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-
   const createOrder = api.orders.create.useMutation();
-
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
@@ -125,14 +110,12 @@ export default function ImprovedHomePage() {
       setIsSubmitting(false);
     }
   };
-
   return (
     <div
       className="min-h-screen bg-orange-50 bg-cover bg-fixed bg-no-repeat"
       style={{ backgroundImage: "url('/background.png')" }}
     >
       {/* Your content here */}
-
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -155,7 +138,6 @@ export default function ImprovedHomePage() {
                   className="h-full w-full"
                 />
               </div>
-
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
                   Pings Ping Tinapa
@@ -216,7 +198,6 @@ export default function ImprovedHomePage() {
           </div>
         </div>
       </motion.header>
-
       {/* Carousel Section */}
       <section className="relative overflow-hidden" id="about">
         <div className="relative h-screen">
@@ -320,7 +301,6 @@ export default function ImprovedHomePage() {
                 </div>
               </motion.div>
             )}
-
             {/* Slide 2: About Us Section */}
             {currentSlide === 1 && (
               <motion.div
@@ -371,7 +351,6 @@ export default function ImprovedHomePage() {
                           delicacy.
                         </motion.p>
                       </div>
-
                       <motion.div
                         variants={fadeInUp}
                         className="grid grid-cols-2 gap-8"
@@ -430,7 +409,6 @@ export default function ImprovedHomePage() {
                         </div>
                       </motion.div>
                     </motion.div>
-
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[600px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8610e]/5 to-[#f8610e]/20 shadow-2xl">
                         <Image
@@ -450,7 +428,6 @@ export default function ImprovedHomePage() {
                 </div>
               </motion.div>
             )}
-
             {/* Slide 3: Our Story & Heritage */}
             {currentSlide === 2 && (
               <motion.div
@@ -497,7 +474,6 @@ export default function ImprovedHomePage() {
                           Philippines.
                         </motion.p>
                       </div>
-
                       <motion.div variants={fadeInUp} className="space-y-6">
                         <div className="flex items-start space-x-4">
                           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
@@ -547,7 +523,6 @@ export default function ImprovedHomePage() {
                         </div>
                       </motion.div>
                     </motion.div>
-
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[600px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8610e]/5 to-[#f8610e]/20 shadow-2xl">
                         <Image
@@ -568,7 +543,6 @@ export default function ImprovedHomePage() {
               </motion.div>
             )}
           </AnimatePresence>
-
           {/* Navigation Arrows */}
           <button
             onClick={prevSlide}
@@ -582,7 +556,6 @@ export default function ImprovedHomePage() {
           >
             <ChevronRight className="h-6 w-6 text-gray-700" />
           </button>
-
           {/* Slide Indicators */}
           <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 space-x-3">
             {Array.from({ length: totalSlides }).map((_, index) => (
@@ -599,7 +572,6 @@ export default function ImprovedHomePage() {
           </div>
         </div>
       </section>
-
       {/* Products Showcase */}
       <section id="products" className="mx-auto max-w-7xl px-6 py-16">
         <h3 className="mb-12 text-center text-4xl font-bold text-gray-900">
@@ -609,7 +581,7 @@ export default function ImprovedHomePage() {
           {products?.map(({ id, name, description, image, price }) => (
             <Card
               key={id}
-              className="overflow-hidden rounded-2xl px-4 shadow-lg"
+              className="flex h-full flex-col overflow-hidden rounded-2xl px-4 shadow-lg"
             >
               <div className="relative h-64 w-full">
                 <Image
@@ -621,30 +593,30 @@ export default function ImprovedHomePage() {
                   className="object-cover"
                 />
               </div>
-         <CardContent className="space-y-4 p-6">
-  <h4 className="text-xl font-bold text-gray-900">{name}</h4>
-  <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-  <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
-
-  <div className="mt-6 space-y-3">
-    <Button
-            onClick={() => router.push("/users/products")}
-
-      className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
-    >
-      Order now
-    </Button>
-    <Button
-      variant="outline"
-              onClick={() => router.push("/users/products")}
-
-      className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
-    >
-      Add to cart
-    </Button>
-  </div>
-</CardContent>
-
+              <CardContent className="flex flex-grow flex-col space-y-4 p-6">
+                <h4 className="text-xl font-bold text-gray-900">{name}</h4>
+                <p className="flex-grow text-sm leading-relaxed text-gray-600">
+                  {description}
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">
+                  ₱{price}
+                </p>
+                <div className="mt-4">
+                  <Button
+                    onClick={() => {
+                      const element = document.getElementById("message");
+                      if (element) {
+                        element.scrollIntoView({ behavior: "smooth" });
+                      } else {
+                        router.push("#message");
+                      }
+                    }}
+                    className="w-full rounded-xl bg-[#f8610e] font-medium text-white shadow-md transition-all hover:bg-[#f8610e]/90 hover:shadow-lg"
+                  >
+                    Order now
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -659,7 +631,7 @@ export default function ImprovedHomePage() {
           {pasalubongItems?.map(({ id, name, description, image, price }) => (
             <Card
               key={id}
-              className="overflow-hidden rounded-2xl px-4 shadow-lg"
+              className="flex h-full flex-col overflow-hidden rounded-2xl px-4 shadow-lg"
             >
               <div className="relative h-64 w-full">
                 <Image
@@ -671,35 +643,36 @@ export default function ImprovedHomePage() {
                   className="object-cover"
                 />
               </div>
-            <CardContent className="space-y-4 p-6">
-  <h4 className="text-xl font-bold text-gray-900">₱{name}</h4>
-  <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-<p className="mt-2 text-2xl font-extrabold text-[#f8610e]">₱{price}</p>
-
-   <div className="mt-6 space-y-3">
-      <Button
-        className="w-full rounded-xl bg-[#f8610e] text-white font-medium shadow-md transition-all hover:shadow-lg hover:bg-[#f8610e]/90"
-        onClick={() => router.push("/users/products")}
-      >
-        Order now
-      </Button>
-
-      <Button
-        variant="outline"
-        className="w-full rounded-xl border border-[#f8610e] text-[#f8610e] font-medium transition-all hover:bg-[#f8610e]/10"
-        onClick={() => router.push("/users/products")}
-      >
-        Add to cart
-      </Button>
-    </div>
-</CardContent>
-
+              <CardContent className="flex flex-grow flex-col space-y-4 p-6">
+                <h4 className="text-xl font-bold text-gray-900">{name}</h4>
+                <p className="flex-grow text-sm leading-relaxed text-gray-600">
+                  {description}
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">
+                  ₱{price}
+                </p>
+                <div className="mt-4">
+                  <Button
+                    onClick={() => {
+                      const element = document.getElementById("message");
+                      if (element) {
+                        element.scrollIntoView({ behavior: "smooth" });
+                      } else {
+                        router.push("#message");
+                      }
+                    }}
+                    className="w-full rounded-xl bg-[#f8610e] font-medium text-white shadow-md transition-all hover:bg-[#f8610e]/90 hover:shadow-lg"
+                  >
+                    Order now
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      <section id="contact" className="bg-gray-50 py-20">
+      <section className="bg-gray-50 py-20" id="message">
         <div className="mx-auto max-w-7xl px-6" id="inquire">
           <motion.div
             initial="initial"
@@ -722,7 +695,6 @@ export default function ImprovedHomePage() {
               for orders, inquiries, or to learn more about our products.
             </motion.p>
           </motion.div>
-
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Contact Information */}
             <motion.div
@@ -752,7 +724,6 @@ export default function ImprovedHomePage() {
                       </p>
                     </div>
                   </div>
-
                   <div className="flex items-start space-x-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
                       <Phone className="h-6 w-6 text-[#f8610e]" />
@@ -766,7 +737,6 @@ export default function ImprovedHomePage() {
                       </p>
                     </div>
                   </div>
-
                   <div className="flex items-start space-x-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
                       <Mail className="h-6 w-6 text-[#f8610e]" />
@@ -780,7 +750,6 @@ export default function ImprovedHomePage() {
                       </p>
                     </div>
                   </div>
-
                   <div className="flex items-start space-x-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
                       <Clock className="h-6 w-6 text-[#f8610e]" />
@@ -799,7 +768,6 @@ export default function ImprovedHomePage() {
                 </div>
               </motion.div>
             </motion.div>
-
             {/* Contact Form */}
             <motion.div
               initial="initial"
@@ -830,7 +798,6 @@ export default function ImprovedHomePage() {
                         </div>
                       </div>
                     )}
-
                     <div className="grid gap-6 sm:grid-cols-2">
                       <div>
                         <label
@@ -879,7 +846,6 @@ export default function ImprovedHomePage() {
                         )}
                       </div>
                     </div>
-
                     <div>
                       <label
                         htmlFor="email"
@@ -902,7 +868,6 @@ export default function ImprovedHomePage() {
                         </p>
                       )}
                     </div>
-
                     <div>
                       <label
                         htmlFor="phone"
@@ -925,7 +890,6 @@ export default function ImprovedHomePage() {
                         </p>
                       )}
                     </div>
-
                     <div>
                       <label
                         htmlFor="subject"
@@ -947,7 +911,6 @@ export default function ImprovedHomePage() {
                         </p>
                       )}
                     </div>
-
                     <div>
                       <label
                         htmlFor="message"
@@ -970,7 +933,6 @@ export default function ImprovedHomePage() {
                         </p>
                       )}
                     </div>
-
                     <Button
                       type="submit"
                       className="w-full rounded-full bg-[#f8610e] py-3 text-lg font-semibold text-white hover:bg-[#f8610e]/90 disabled:opacity-70"
@@ -985,7 +947,6 @@ export default function ImprovedHomePage() {
           </div>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="bg-gray-900 py-12 text-white">
         <div className="mx-auto max-w-7xl px-6">
@@ -1021,7 +982,6 @@ export default function ImprovedHomePage() {
                 </Button>
               </div>
             </div>
-
             <div>
               <h4 className="mb-4 font-semibold">Quick Links</h4>
               <ul className="space-y-2 text-sm text-gray-400">
@@ -1047,7 +1007,6 @@ export default function ImprovedHomePage() {
                 </li>
               </ul>
             </div>
-
             <div>
               <h4 className="mb-4 font-semibold">Contact Info</h4>
               <ul className="space-y-2 text-sm text-gray-400">
@@ -1057,7 +1016,6 @@ export default function ImprovedHomePage() {
               </ul>
             </div>
           </div>
-
           <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
             <p>&copy; 2025 Pings Ping Tinapa. All rights reserved.</p>
           </div>
