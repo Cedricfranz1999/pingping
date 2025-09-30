@@ -293,7 +293,7 @@ const ProductsPage: NextPage = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((category:any) => (
+                  {categories?.map((category: any) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -380,7 +380,7 @@ const ProductsPage: NextPage = () => {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead
+                    {/* <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("stock")}
                     >
@@ -396,7 +396,7 @@ const ProductsPage: NextPage = () => {
                           <span className="ml-1 h-4 w-4" />
                         )}
                       </div>
-                    </TableHead>
+                    </TableHead> */}
                     <TableHead>Category</TableHead>
                     <TableHead>Type</TableHead>
 
@@ -425,7 +425,7 @@ const ProductsPage: NextPage = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    productsData?.products.map((product:any) => (
+                    productsData?.products.map((product: any) => (
                       <TableRow key={product.id} className="hover:bg-muted/50">
                         <TableCell>
                           <Avatar className="h-10 w-10">
@@ -452,14 +452,14 @@ const ProductsPage: NextPage = () => {
                             ₱{parseFloat(product.price).toFixed(2)}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        {/* <TableCell>
                           <Badge
                             variant={getStockBadgeVariant(product.stock)}
                             className={`${product.stock > 10 ? "bg-green-600" : "bg-red-600"}`}
                           >
                             {product.stock} - {getStockText(product.stock)}
                           </Badge>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -671,8 +671,8 @@ const ProductsPage: NextPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {categories
-                    ?.filter((c:any) => c !== "All")
-                    .map((category:any) => (
+                    ?.filter((c: any) => c !== "All")
+                    .map((category: any) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
@@ -826,7 +826,7 @@ const ProductsPage: NextPage = () => {
                 <SelectContent>
                   {categories
                     ?.filter((c) => c !== "All")
-                    .map((category:any) => (
+                    .map((category: any) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>

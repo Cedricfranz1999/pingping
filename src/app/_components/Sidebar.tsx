@@ -325,9 +325,7 @@ const Sidebar = () => {
                       </Link>
 
                       <Link
-                        href="/qrcode_attendance"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="/admin/attendance"
                         className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
                           isActive("/admin/attendance")
                             ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"

@@ -68,8 +68,15 @@ const InventoryPage: NextPage = () => {
   };
 
   const handleDecreaseStock = () => {
-    if (selectedProduct && decreaseQuantity > 0 && decreaseQuantity <= selectedProduct.stock) {
-      decreaseStock.mutate({ id: selectedProduct.id, quantity: decreaseQuantity });
+    if (
+      selectedProduct &&
+      decreaseQuantity > 0 &&
+      decreaseQuantity <= selectedProduct.stock
+    ) {
+      decreaseStock.mutate({
+        id: selectedProduct.id,
+        quantity: decreaseQuantity,
+      });
     }
   };
 
@@ -109,8 +116,7 @@ const InventoryPage: NextPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-             {products?.products?.map((product: any) => (
-
+              {products?.products?.map((product: any) => (
                 <TableRow key={product.id}>
                   <TableCell>{product.id}</TableCell>
                   <TableCell>{product.name}</TableCell>
@@ -118,15 +124,15 @@ const InventoryPage: NextPage = () => {
                   <TableCell
                     className={
                       product.stock === 0
-                        ? "text-red-600 font-semibold"
-                        : product.stock < 10
-                        ? "text-yellow-600 font-semibold"
-                        : "text-green-600 font-semibold"
+                        ? "font-semibold text-red-600"
+                        : product.stock < 11
+                          ? "font-semibold text-yellow-600"
+                          : "font-semibold text-green-600"
                     }
                   >
                     {product.stock}
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="space-x-2 text-right">
                     <Button
                       variant="outline"
                       size="sm"
@@ -164,9 +170,7 @@ const InventoryPage: NextPage = () => {
       <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">
-              Update Stock
-            </DialogTitle>
+            <DialogTitle className="text-[#f8610e]">Update Stock</DialogTitle>
             <DialogDescription>
               Update stock quantity for {selectedProduct?.name}
             </DialogDescription>
@@ -206,13 +210,11 @@ const InventoryPage: NextPage = () => {
       <Dialog open={isDecreaseModalOpen} onOpenChange={setIsDecreaseModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">
-              Decrease Stock
-            </DialogTitle>
+            <DialogTitle className="text-[#f8610e]">Decrease Stock</DialogTitle>
             <DialogDescription>
               Decrease stock quantity for {selectedProduct?.name}
               {selectedProduct && (
-                <span className="block text-sm text-muted-foreground mt-1">
+                <span className="text-muted-foreground mt-1 block text-sm">
                   Current stock: {selectedProduct.stock}
                 </span>
               )}
@@ -240,7 +242,11 @@ const InventoryPage: NextPage = () => {
               </Button>
               <Button
                 onClick={handleDecreaseStock}
-                disabled={decreaseStock.isPending || !decreaseQuantity || decreaseQuantity > (selectedProduct?.stock || 0)}
+                disabled={
+                  decreaseStock.isPending ||
+                  !decreaseQuantity ||
+                  decreaseQuantity > (selectedProduct?.stock || 0)
+                }
                 className="bg-[#f8610e] hover:bg-[#f8610e]/90"
               >
                 {decreaseStock.isPending ? "Updating..." : "Decrease Stock"}
