@@ -72,40 +72,39 @@ const Sidebar = () => {
           {/* Navigation */}
           <div className="mt-6 flex-1 px-4">
             <nav className="space-y-2">
-              {!userCanModify ? (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                  className="space-y-1"
+              {/* Attendance Tab (Always shown) */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <Link
+                  href="/employee/attendance"
+                  className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                    isActive("/employee/attendance")
+                      ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
+                      : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
+                  }`}
                 >
-                  {/* <div className="flex items-center">
-                    <Link
-                      href="/employee/attendance"
-                      className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                        isActive("/employee/attendance")
-                          ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
-                          : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
-                      }`}
-                    >
-                      <Clock
-                        className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                          isActive("/employee/attendance")
-                            ? "text-[#f8610e]"
-                            : "text-white"
-                        }`}
-                      />
-                      Attendance
-                    </Link>
-                  </div> */}
-                </motion.div>
-              ) : (
+                  <Clock
+                    className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                      isActive("/employee/attendance")
+                        ? "text-[#f8610e]"
+                        : "text-white"
+                    }`}
+                  />
+                  Attendance
+                </Link>
+              </motion.div>
+
+              {/* Show all other tabs only if user can modify */}
+              {!userCanModify && (
                 <>
                   {/* Dashboard */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
                   >
                     <Link
                       href="/employee/dashboard"
@@ -130,7 +129,7 @@ const Sidebar = () => {
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
                     className="space-y-1"
                   >
                     <div className="flex items-center">
@@ -358,7 +357,7 @@ const Sidebar = () => {
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.6 }}
+                    transition={{ duration: 0.3, delay: 0.5 }}
                   >
                     <Link
                       href="/employee/reports"

@@ -114,7 +114,7 @@ model ProductCategory {
   productId  Int
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
-  product    Product  @relation(fields: [productId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model ProductLog {
