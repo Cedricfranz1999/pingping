@@ -34,7 +34,7 @@ export default function LoginPage() {
       });
 
       // Redirect based on role
-      router.push("/employee/dashboard");
+      router.push("/employee/record-attendance");
     },
     onError: (error) => {
       setError(error.message);

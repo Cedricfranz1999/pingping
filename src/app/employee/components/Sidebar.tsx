@@ -79,16 +79,16 @@ const Sidebar = () => {
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
                 <Link
-                  href="/employee/attendance"
+                  href="/employee/record-attendance"
                   className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                    isActive("/employee/attendance")
+                    isActive("/employee/record-attendance")
                       ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
                       : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
                   }`}
                 >
                   <Clock
                     className={`h-5 w-5 transition-transform group-hover:scale-110 ${
-                      isActive("/employee/attendance")
+                      isActive("/employee/record-attendance")
                         ? "text-[#f8610e]"
                         : "text-white"
                     }`}
