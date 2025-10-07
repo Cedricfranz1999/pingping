@@ -247,48 +247,60 @@ export const ordersProductRouter = createTRPCRouter({
     }),
 
   // In your ordersProductRouter, add this procedure
-  createOrderWithoutUser: publicProcedure
-    .input(
-      z.object({
-        items: z.array(
-          z.object({
-            productId: z.number(),
-            quantity: z.number(),
-            price: z.number(),
-          }),
-        ),
-        totalPrice: z.number(),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const { items, totalPrice } = input;
+createOrderWithoutUser: publicProcedure
+  .input(
+    z.object({
+      items: z.array(
+        z.object({
+          productId: z.number(),
+          quantity: z.number(),
+          price: z.number(),
+        }),
+      ),
+      totalPrice: z.number(),
+    }),
+  )
+  .mutation(async ({ input, ctx }) => {
+    const { items, totalPrice } = input;
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Create the order without userId
-      const order = await ctx.db.userOrder.create({
-        data: {
-          orderNumber,
-          totalPrice,
-          status: "PENDING",
-          userId: null, // Explicitly set userId to null
-          orderItems: {
-            create: items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-            })),
+    // Create the order without userId
+    const order = await ctx.db.userOrder.create({
+      data: {
+        orderNumber,
+        totalPrice,
+        status: "CONFIRMED",
+        userId: null,
+        orderItems: {
+          create: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        },
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: true,
           },
         },
-        include: {
-          orderItems: {
-            include: {
-              product: true,
-            },
+      },
+    });
+
+    // Reduce stock for each product in the order
+    for (const item of items) {
+      await ctx.db.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: {
+            decrement: item.quantity,
           },
         },
       });
+    }
 
-      return order;
-    }),
+    return order;
+  }),
+
 });

@@ -18,6 +18,7 @@ import {
   Upload,
 } from "lucide-react";
 import { api } from "~/trpc/react";
+import { ProductType } from "@prisma/client";
 
 // shadcn/ui imports
 import { Button } from "~/components/ui/button";
@@ -70,6 +71,7 @@ type ProductFormData = {
   stock: number;
   image?: string;
   category: string;
+  productType: ProductType;
   imageFile?: File | null;
 };
 
@@ -92,6 +94,8 @@ const ProductsPage: NextPage = () => {
     description: "",
     price: "0",
     stock: 0,
+    productType: "TINAPA",
+
     image: "",
     category: "",
     imageFile: null,
@@ -135,7 +139,7 @@ const ProductsPage: NextPage = () => {
     },
   });
 
-  const resetForm = () => {
+ const resetForm = () => {
     setFormData({
       name: "",
       description: "",
@@ -143,6 +147,7 @@ const ProductsPage: NextPage = () => {
       stock: 0,
       image: "",
       category: "",
+      productType: "TINAPA",
       imageFile: null,
     });
   };
@@ -163,6 +168,7 @@ const ProductsPage: NextPage = () => {
       description: product.description,
       price: product.price,
       stock: product.stock,
+      productType: product.productType,
       image: product.image || "",
       category: product.categories[0]?.category.name || "",
       imageFile: null,
@@ -205,6 +211,7 @@ const ProductsPage: NextPage = () => {
       stock: formData.stock,
       image: formData.image,
       category: formData.category,
+      productType: formData.productType,
     };
 
     if (isEditModalOpen && selectedProduct) {

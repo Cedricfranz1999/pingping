@@ -1,6 +1,4 @@
-// app/admin/walk-in/page.tsx
 "use client";
-
 import React, { useState } from "react";
 import {
   Plus,
@@ -29,12 +27,13 @@ const WalkInPage = () => {
       price: number;
       quantity: number;
       image?: string;
+      stock: number;
     }>
   >([]);
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
 
   // Get products
-  const { data: productsData } = api.product.getAll.useQuery(
+  const { data: productsData, refetch: refetchProducts } = api.product.getAll.useQuery(
     {
       page: 1,
       limit: 100,
@@ -62,7 +61,8 @@ const WalkInPage = () => {
           variant: "default",
         });
         setCartItems([]);
-        refetchOrders(); // Refresh orders list
+        refetchOrders();
+        refetchProducts();
       },
       onError: () => {
         toast({
@@ -83,16 +83,32 @@ const WalkInPage = () => {
     const existingItem = cartItems.find(
       (item) => item.productId === product.id,
     );
-
     if (existingItem) {
+      const newQuantity = existingItem.quantity + 1;
+      if (newQuantity > product.stock) {
+        toast({
+          title: "Error!",
+          description: "Cannot add more than available stock",
+          variant: "destructive",
+        });
+        return;
+      }
       setCartItems(
         cartItems.map((item) =>
           item.productId === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: newQuantity }
             : item,
         ),
       );
     } else {
+      if (1 > product.stock) {
+        toast({
+          title: "Error!",
+          description: "Product is out of stock",
+          variant: "destructive",
+        });
+        return;
+      }
       setCartItems([
         ...cartItems,
         {
@@ -101,12 +117,25 @@ const WalkInPage = () => {
           price: parseFloat(product.price),
           quantity: 1,
           image: product.image || undefined,
+          stock: product.stock,
         },
       ]);
     }
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
+    const item = cartItems.find((item) => item.productId === productId);
+    if (!item) return;
+
+    if (quantity > item.stock) {
+      toast({
+        title: "Error!",
+        description: "Cannot add more than available stock",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (quantity === 0) {
       setCartItems(cartItems.filter((item) => item.productId !== productId));
     } else {
@@ -140,7 +169,6 @@ const WalkInPage = () => {
       });
       return;
     }
-
     createOrderWithoutUser.mutate({
       items: cartItems.map((item) => ({
         productId: item.productId,
@@ -235,7 +263,6 @@ const WalkInPage = () => {
           </div>
         </div>
       </div>
-
       <div className="mx-auto px-6 py-6">
         {/* Enhanced Tabs */}
         <div className="mb-8 flex w-fit rounded-lg bg-gray-50 p-1">
@@ -262,7 +289,6 @@ const WalkInPage = () => {
             Today's order record ({walkInOrders.length})
           </button>
         </div>
-
         {activeTab === "products" ? (
           <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
             {/* Enhanced Products List */}
@@ -300,7 +326,6 @@ const WalkInPage = () => {
                               </div>
                             )}
                           </div>
-
                           <div className="min-w-0 flex-1">
                             <h3 className="mb-1 line-clamp-2 text-base font-semibold text-gray-900">
                               {product.name}
@@ -331,7 +356,6 @@ const WalkInPage = () => {
                                 {product.stock}
                               </Badge>
                             </div>
-
                             <Button
                               onClick={() => addToCart(product)}
                               className="w-full border-0 bg-[#a85e38] text-white shadow-sm hover:bg-[#8b4513]"
@@ -351,7 +375,6 @@ const WalkInPage = () => {
                 </ScrollArea>
               </CardContent>
             </Card>
-
             {/* Enhanced Cart */}
             <Card className="border-0 shadow-lg xl:col-span-1">
               <CardHeader className="border-b border-[#a85e38]/10 bg-gradient-to-r from-[#a85e38]/5 to-[#a85e38]/10">
@@ -412,7 +435,6 @@ const WalkInPage = () => {
                                   <ImageIcon className="h-6 w-6 text-gray-400" />
                                 </div>
                               )}
-
                               <div className="min-w-0 flex-1">
                                 <h4 className="mb-1 line-clamp-2 text-sm font-semibold text-gray-900">
                                   {item.name}
@@ -420,7 +442,6 @@ const WalkInPage = () => {
                                 <p className="text-sm font-semibold text-[#a85e38]">
                                   ₱{item.price.toFixed(2)} each
                                 </p>
-
                                 <div className="mt-3 flex items-center justify-between">
                                   <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1">
                                     <Button
@@ -453,7 +474,6 @@ const WalkInPage = () => {
                                       <Plus className="h-3 w-3" />
                                     </Button>
                                   </div>
-
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -465,7 +485,6 @@ const WalkInPage = () => {
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
-
                                 <div className="mt-2 text-right">
                                   <span className="text-sm font-bold text-gray-900">
                                     ₱{(item.price * item.quantity).toFixed(2)}
@@ -477,7 +496,6 @@ const WalkInPage = () => {
                         ))}
                       </div>
                     </ScrollArea>
-
                     {/* Enhanced Order Summary */}
                     <div className="space-y-4 border-t border-gray-200 pt-6">
                       <div className="rounded-lg border border-[#a85e38]/10 bg-[#a85e38]/5 p-4">
@@ -496,7 +514,6 @@ const WalkInPage = () => {
                           </span>
                         </div>
                       </div>
-
                       <Button
                         onClick={handleCreateOrder}
                         className="w-full border-0 bg-[#a85e38] text-white shadow-md transition-all duration-200 hover:bg-[#8b4513] hover:shadow-lg"
@@ -568,9 +585,6 @@ const WalkInPage = () => {
                           <th className="p-4 text-left font-semibold text-gray-700">
                             Status
                           </th>
-                          {/* <th className="p-4 text-left font-semibold text-gray-700">
-                            Actions
-                          </th> */}
                         </tr>
                       </thead>
                       <tbody>
@@ -617,19 +631,6 @@ const WalkInPage = () => {
                                 {order.status}
                               </Badge>
                             </td>
-                            {/* <td className="p-4">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="transition-colors hover:bg-[#a85e38] hover:text-white"
-                              >
-                                <Link href={`/users/orders/${order.id}`}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </Link>
-                              </Button>
-                            </td> */}
                           </tr>
                         ))}
                       </tbody>

@@ -281,14 +281,14 @@ const Page = () => {
                     <h3 className="font-semibold">Contact Information</h3>
                   </div>
                   <div className="space-y-2 text-sm">
-                    <p className="font-medium">{orderData.user.firstName} {orderData.user.lastName}</p>
-                    {orderData.user.email && (
+                    <p className="font-medium">{orderData.user?.firstName} {orderData?.user?.lastName}</p>
+                    {orderData?.user?.email && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <Mail className="h-4 w-4" />
                         <span>{orderData.user.email}</span>
                       </div>
                     )}
-                    {orderData.user.phone && (
+                    {orderData?.user?.phone && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <Phone className="h-4 w-4" />
                         <span>{orderData.user.phone}</span>
@@ -297,13 +297,13 @@ const Page = () => {
                   </div>
                 </div>
 
-                {orderData.user.address && (
+                {orderData.user?.address && (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <MapPin className="h-5 w-5 text-gray-400" />
                       <h3 className="font-semibold">Shipping Address</h3>
                     </div>
-                    <p className="text-sm text-gray-600">{orderData.user.address}</p>
+                    <p className="text-sm text-gray-600">{orderData.user?.address}</p>
                   </div>
                 )}
 

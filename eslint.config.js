@@ -1,10 +1,8 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import tseslint from "typescript-eslint";
-
 const compat = new FlatCompat({
   baseDirectory: import.meta.dirname,
 });
-
 export default tseslint.config(
   {
     ignores: [".next"],
@@ -29,24 +27,24 @@ export default tseslint.config(
       "@typescript-eslint/no-empty-interface": "off",
       "@typescript-eslint/no-misused-promises": "off",
       "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/consistent-type-imports":"off",
+      "@typescript-eslint/prefer-optional-chain":"off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
       "@typescript-eslint/no-floating-promises": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion":"off",
       "@typescript-eslint/no-redundant-type-constituents": "off",
+      "@typescript-eslint/no-unused-vars":"off",
+
       "@next/next/no-html-link-for-pages": "off",
-      "@typescript-eslint/consistent-type-imports": [
-        "warn",
-        {
-          prefer: "type-imports",
-          fixStyle: "inline-type-imports",
-        },
-      ],
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          argsIgnorePattern: "^_",
-        },
-      ],
+      "@next/next/no-img-element": "off",
+      "react/no-unescaped-entities": "off", 
+      "@typescript-eslint/restrict-template-expressions": "off",
+      " @typescript-eslint/consistent-type-imports":"off",
+
+      "@typescript-eslint/consistent-indexed-object-style":"off",
+   
+   
       "@typescript-eslint/require-await": "off",
     },
   },
