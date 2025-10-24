@@ -1,4 +1,6 @@
+// Updated Campaign Page with Click-to-View Product Details
 "use client";
+
 import {
   MapPin,
   Phone,
@@ -14,20 +16,42 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { api } from "~/trpc/react";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+
+// NEW: Dialog for product details
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "~/components/ui/dialog";
+
 export default function ImprovedHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 3;
+
+  // NEW: product dialog state
+  const [selectedProduct, setSelectedProduct] = useState<{
+    id: number | string;
+    name: string;
+    description: string;
+    image?: string | null;
+    price?: number | string;
+  } | null>(null);
+  const [isProductOpen, setIsProductOpen] = useState(false);
+
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.4, ease: "easeOut" },
   };
+
   const staggerContainer = {
     animate: {
       transition: {
@@ -35,15 +59,17 @@ export default function ImprovedHomePage() {
       },
     },
   };
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
       window.scrollTo({
-        top: element.offsetTop - 80, // Adjust for header height
+        top: element.offsetTop - 80,
         behavior: "smooth",
       });
     }
   };
+
   // Auto-advance carousel
   useEffect(() => {
     const timer = setInterval(() => {
@@ -51,45 +77,47 @@ export default function ImprovedHomePage() {
     }, 3000);
     return () => clearInterval(timer);
   }, []);
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % totalSlides);
-  };
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
-  };
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+  const goToSlide = (index: number) => setCurrentSlide(index);
+
   const router = useRouter();
-  const { data: products, isLoading: loadingTinapa } =
+
+  // Keep both queries, merged for display (as in your original)
+  const { data: tinapaProducts, isLoading: loadingTinapa } =
     api.product.getTinapaProducts.useQuery();
   const { data: pasalubongItems, isLoading: loadingPasalubong } =
     api.product.getPasalubongProducts.useQuery();
-  // 12 pasalubong items, all with pasalubonghd.png placeholder
+
+  const allProducts = useMemo(
+    () => [...(tinapaProducts ?? []), ...(pasalubongItems ?? [])],
+    [tinapaProducts, pasalubongItems]
+  );
+
+  const loadingAll = loadingTinapa || loadingPasalubong;
+
   const formSchema = z.object({
     firstname: z.string().min(1, "First name is required"),
     lastname: z.string().min(1, "Last name is required"),
     email: z.string().email().optional().or(z.literal("")),
-    phone: z
-      .string()
-      .min(11, "Phone must be 11 digits")
-      .max(11, "Phone must be 11 digits"),
+    phone: z.string().min(11, "Phone must be 11 digits").max(11, "Phone must be 11 digits"),
     subject: z.string().optional(),
     message: z.string().min(1, "Message is required"),
   });
   type FormData = z.infer<typeof formSchema>;
-  // Form state and methods
+
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-  });
+  } = useForm<FormData>({ resolver: zodResolver(formSchema) });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const createOrder = api.orders.create.useMutation();
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
@@ -110,12 +138,12 @@ export default function ImprovedHomePage() {
       setIsSubmitting(false);
     }
   };
+
   return (
     <div
       className="min-h-screen bg-orange-50 bg-cover bg-fixed bg-no-repeat"
       style={{ backgroundImage: "url('/background.png')" }}
     >
-      {/* Your content here */}
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -125,26 +153,13 @@ export default function ImprovedHomePage() {
       >
         <div className="px-6 lg:px-8">
           <div className="flex h-20 items-center justify-between">
-            <motion.div
-              className="flex items-center space-x-4"
-              whileHover={{ scale: 1.02 }}
-            >
+            <motion.div className="flex items-center space-x-4" whileHover={{ scale: 1.02 }}>
               <div className="h-[70px] w-[70px] overflow-hidden rounded-full">
-                <Image
-                  alt="logo"
-                  src="/logo.png"
-                  width={500}
-                  height={500}
-                  className="h-full w-full"
-                />
+                <Image alt="logo" src="/logo.png" width={500} height={500} className="h-full w-full" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Pings Ping Tinapa
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Authentic Filipino Delicacy
-                </p>
+                <h1 className="text-xl font-bold text-gray-900">Pings Ping Tinapa</h1>
+                <p className="text-sm text-gray-600">Authentic Filipino Delicacy</p>
               </div>
             </motion.div>
             <nav className="hidden items-center space-x-8 md:flex">
@@ -168,21 +183,13 @@ export default function ImprovedHomePage() {
               >
                 Products
               </a>
-              <a
-                href="#pasalubong"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("pasalubong");
-                }}
-                className="font-medium text-gray-700 transition-colors hover:text-[#f8610e]"
-              >
-                Pasalubong
-              </a>
+              {/* Removed Pasalubong link */}
               <a
                 href="#contact"
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection("contact");
+                  // ensure the section ID exists; we map contact -> message section below
+                  scrollToSection("message");
                 }}
                 className="font-medium text-gray-700 transition-colors hover:text-[#f8610e]"
               >
@@ -198,6 +205,7 @@ export default function ImprovedHomePage() {
           </div>
         </div>
       </motion.header>
+
       {/* Carousel Section */}
       <section className="relative overflow-hidden" id="about">
         <div className="relative h-screen">
@@ -214,36 +222,22 @@ export default function ImprovedHomePage() {
               >
                 <div className="mx-auto w-full max-w-7xl">
                   <div className="grid items-center gap-16 lg:grid-cols-2">
-                    <motion.div
-                      variants={fadeInUp}
-                      initial="initial"
-                      animate="animate"
-                      className="space-y-8"
-                    >
+                    <motion.div variants={fadeInUp} initial="initial" animate="animate" className="space-y-8">
                       <div className="space-y-4">
-                        <motion.h2
-                          className="text-5xl leading-tight font-bold text-gray-900 lg:text-7xl"
-                          variants={fadeInUp}
-                        >
+                        <motion.h2 className="text-5xl leading-tight font-bold text-gray-900 lg:text-7xl" variants={fadeInUp}>
                           Premium
                           <span className="block text-[#f8610e]">Tinapa</span>
                         </motion.h2>
-                        <motion.p
-                          className="max-w-lg text-xl leading-relaxed text-gray-600"
-                          variants={fadeInUp}
-                        >
-                          Experience the authentic taste of traditional Filipino
-                          smoked fish, crafted with time-honored techniques and
-                          the finest ingredients.
+                        <motion.p className="max-w-lg text-xl leading-relaxed text-gray-600" variants={fadeInUp}>
+                          Experience the authentic taste of traditional Filipino smoked fish, crafted with time-honored
+                          techniques and the finest ingredients.
                         </motion.p>
                       </div>
-                      <motion.div
-                        variants={fadeInUp}
-                        className="flex flex-col gap-4 sm:flex-row"
-                      >
+                      <motion.div variants={fadeInUp} className="flex flex-col gap-4 sm:flex-row">
                         <Button
                           size="lg"
                           className="rounded-full bg-[#f8610e] px-8 py-4 text-lg font-semibold text-white hover:bg-[#f8610e]/90"
+                          onClick={() => scrollToSection("products")}
                         >
                           Shop Now
                         </Button>
@@ -255,45 +249,24 @@ export default function ImprovedHomePage() {
                           Learn More
                         </Button>
                       </motion.div>
-                      <motion.div
-                        variants={fadeInUp}
-                        className="grid grid-cols-3 gap-8 pt-8"
-                      >
+                      <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-8 pt-8">
                         <div className="text-center">
-                          <div className="text-3xl font-bold text-[#f8610e]">
-                            25+
-                          </div>
-                          <div className="text-sm font-medium text-gray-600">
-                            Years Experience
-                          </div>
+                          <div className="text-3xl font-bold text-[#f8610e]">25+</div>
+                          <div className="text-sm font-medium text-gray-600">Years Experience</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-3xl font-bold text-[#f8610e]">
-                            1000+
-                          </div>
-                          <div className="text-sm font-medium text-gray-600">
-                            Happy Customers
-                          </div>
+                          <div className="text-3xl font-bold text-[#f8610e]">1000+</div>
+                          <div className="text-sm font-medium text-gray-600">Happy Customers</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-3xl font-bold text-[#f8610e]">
-                            100%
-                          </div>
-                          <div className="text-sm font-medium text-gray-600">
-                            Natural
-                          </div>
+                          <div className="text-3xl font-bold text-[#f8610e]">100%</div>
+                          <div className="text-sm font-medium text-gray-600">Natural</div>
                         </div>
                       </motion.div>
                     </motion.div>
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[500px] overflow-hidden rounded-3xl bg-white shadow-2xl lg:h-[500px]">
-                        <Image
-                          className="rounded-3xl bg-[#6d2803] p-5"
-                          src="/aboutUS5.png"
-                          alt="Premium Tinapa"
-                          fill
-                          unoptimized
-                        />
+                        <Image className="rounded-3xl bg-[#6d2803] p-5" src="/aboutUS5.png" alt="Premium Tinapa" fill unoptimized />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                       </div>
                     </motion.div>
@@ -301,6 +274,7 @@ export default function ImprovedHomePage() {
                 </div>
               </motion.div>
             )}
+
             {/* Slide 2: About Us Section */}
             {currentSlide === 1 && (
               <motion.div
@@ -313,59 +287,30 @@ export default function ImprovedHomePage() {
               >
                 <div className="mx-auto w-full max-w-7xl">
                   <div className="grid items-center gap-16 lg:grid-cols-2">
-                    <motion.div
-                      variants={fadeInUp}
-                      initial="initial"
-                      animate="animate"
-                      className="space-y-8"
-                    >
+                    <motion.div variants={fadeInUp} initial="initial" animate="animate" className="space-y-8">
                       <div className="space-y-6">
-                        <motion.h2
-                          className="text-4xl font-bold text-gray-900 lg:text-5xl"
-                          variants={fadeInUp}
-                        >
-                          About{" "}
-                          <span className="text-[#f8610e]">
-                            Pings Ping Tinapa
-                          </span>
+                        <motion.h2 className="text-4xl font-bold text-gray-900 lg:text-5xl" variants={fadeInUp}>
+                          About <span className="text-[#f8610e]">Pings Ping Tinapa</span>
                         </motion.h2>
-                        <motion.p
-                          className="text-lg leading-relaxed text-gray-600"
-                          variants={fadeInUp}
-                        >
-                          For over 25 years, Pings Ping Tinapa has been crafting
-                          authentic Filipino smoked fish using traditional
-                          methods passed down through generations. Our
-                          commitment to quality and authenticity has made us a
-                          beloved name in Filipino cuisine.
+                        <motion.p className="text-lg leading-relaxed text-gray-600" variants={fadeInUp}>
+                          For over 25 years, Pings Ping Tinapa has been crafting authentic Filipino smoked fish using
+                          traditional methods passed down through generations. Our commitment to quality and authenticity
+                          has made us a beloved name in Filipino cuisine.
                         </motion.p>
-                        <motion.p
-                          className="text-lg leading-relaxed text-gray-600"
-                          variants={fadeInUp}
-                        >
-                          We source only the freshest fish from local fishermen
-                          and use time-honored smoking techniques to create the
-                          perfect balance of flavor and aroma. Every piece of
-                          tinapa is carefully prepared with love and dedication
-                          to preserve the authentic taste of this Filipino
-                          delicacy.
+                        <motion.p className="text-lg leading-relaxed text-gray-600" variants={fadeInUp}>
+                          We source only the freshest fish from local fishermen and use time-honored smoking techniques to
+                          create the perfect balance of flavor and aroma. Every piece of tinapa is carefully prepared with
+                          love and dedication to preserve the authentic taste of this Filipino delicacy.
                         </motion.p>
                       </div>
-                      <motion.div
-                        variants={fadeInUp}
-                        className="grid grid-cols-2 gap-8"
-                      >
+                      <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-8">
                         <div className="flex items-center space-x-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
                             <Award className="h-6 w-6 text-[#f8610e]" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Premium Quality
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Hand-selected ingredients
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Premium Quality</h4>
+                            <p className="text-sm text-gray-600">Hand-selected ingredients</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -373,12 +318,8 @@ export default function ImprovedHomePage() {
                             <Users className="h-6 w-6 text-[#f8610e]" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Family Business
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Three generations strong
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Family Business</h4>
+                            <p className="text-sm text-gray-600">Three generations strong</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -386,12 +327,8 @@ export default function ImprovedHomePage() {
                             <Clock className="h-6 w-6 text-[#f8610e]" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Traditional Methods
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Time-tested processes
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Traditional Methods</h4>
+                            <p className="text-sm text-gray-600">Time-tested processes</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -399,28 +336,17 @@ export default function ImprovedHomePage() {
                             <Star className="h-6 w-6 text-[#f8610e]" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Authentic Taste
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Original Filipino flavors
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Authentic Taste</h4>
+                            <p className="text-sm text-gray-600">Original Filipino flavors</p>
                           </div>
                         </div>
                       </motion.div>
                     </motion.div>
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[600px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8610e]/5 to-[#f8610e]/20 shadow-2xl">
-                        <Image
-                          src="/aboutUs.png"
-                          alt="About Pings Ping Tinapa"
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
+                        <Image src="/aboutUs.png" alt="About Pings Ping Tinapa" fill unoptimized className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
                       </div>
-                      {/* Decorative elements */}
                       <div className="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-[#f8610e]/20 blur-xl" />
                       <div className="absolute -top-6 -left-6 h-32 w-32 rounded-full bg-[#f8610e]/10 blur-xl" />
                     </motion.div>
@@ -428,6 +354,7 @@ export default function ImprovedHomePage() {
                 </div>
               </motion.div>
             )}
+
             {/* Slide 3: Our Story & Heritage */}
             {currentSlide === 2 && (
               <motion.div
@@ -440,101 +367,57 @@ export default function ImprovedHomePage() {
               >
                 <div className="mx-auto w-full max-w-7xl">
                   <div className="grid items-center gap-16 lg:grid-cols-2">
-                    <motion.div
-                      variants={fadeInUp}
-                      initial="initial"
-                      animate="animate"
-                      className="space-y-8"
-                    >
+                    <motion.div variants={fadeInUp} initial="initial" animate="animate" className="space-y-8">
                       <div className="space-y-6">
-                        <motion.h2
-                          className="text-4xl font-bold text-gray-900 lg:text-5xl"
-                          variants={fadeInUp}
-                        >
+                        <motion.h2 className="text-4xl font-bold text-gray-900 lg:text-5xl" variants={fadeInUp}>
                           Our <span className="text-[#f8610e]">Heritage</span>
                         </motion.h2>
-                        <motion.p
-                          className="text-lg leading-relaxed text-gray-600"
-                          variants={fadeInUp}
-                        >
-                          From humble beginnings in a small coastal town, our
-                          familys passion for creating the perfect tinapa has
-                          been passed down through three generations. Each
-                          recipe tells a story of dedication, tradition, and
-                          love for Filipino culinary heritage.
+                        <motion.p className="text-lg leading-relaxed text-gray-600" variants={fadeInUp}>
+                          From humble beginnings in a small coastal town, our familys passion for creating the perfect
+                          tinapa has been passed down through three generations. Each recipe tells a story of dedication,
+                          tradition, and love for Filipino culinary heritage.
                         </motion.p>
-                        <motion.p
-                          className="text-lg leading-relaxed text-gray-600"
-                          variants={fadeInUp}
-                        >
-                          Today, we continue to honor our ancestors legacy while
-                          embracing modern techniques to bring you the finest
-                          smoked fish products. Every bite connects you to our
-                          rich cultural heritage and the timeless flavors of the
-                          Philippines.
+                        <motion.p className="text-lg leading-relaxed text-gray-600" variants={fadeInUp}>
+                          Today, we continue to honor our ancestors legacy while embracing modern techniques to bring you
+                          the finest smoked fish products. Every bite connects you to our rich cultural heritage and the
+                          timeless flavors of the Philippines.
                         </motion.p>
                       </div>
                       <motion.div variants={fadeInUp} className="space-y-6">
                         <div className="flex items-start space-x-4">
                           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
-                            <span className="text-lg font-bold text-[#f8610e]">
-                              1
-                            </span>
+                            <span className="text-lg font-bold text-[#f8610e]">1</span>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Traditional Smoking Process
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Using coconut husks and native wood for authentic
-                              flavor
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Traditional Smoking Process</h4>
+                            <p className="text-sm text-gray-600">Using coconut husks and native wood for authentic flavor</p>
                           </div>
                         </div>
                         <div className="flex items-start space-x-4">
                           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
-                            <span className="text-lg font-bold text-[#f8610e]">
-                              2
-                            </span>
+                            <span className="text-lg font-bold text-[#f8610e]">2</span>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Fresh Local Catch
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Sourced daily from trusted local fishermen
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Fresh Local Catch</h4>
+                            <p className="text-sm text-gray-600">Sourced daily from trusted local fishermen</p>
                           </div>
                         </div>
                         <div className="flex items-start space-x-4">
                           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
-                            <span className="text-lg font-bold text-[#f8610e]">
-                              3
-                            </span>
+                            <span className="text-lg font-bold text-[#f8610e]">3</span>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">
-                              Family Recipe
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Secret blend of spices perfected over generations
-                            </p>
+                            <h4 className="font-semibold text-gray-900">Family Recipe</h4>
+                            <p className="text-sm text-gray-600">Secret blend of spices perfected over generations</p>
                           </div>
                         </div>
                       </motion.div>
                     </motion.div>
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[600px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8610e]/5 to-[#f8610e]/20 shadow-2xl">
-                        <Image
-                          src="/aboutUs4.png"
-                          alt="Our Heritage - Pings Ping Tinapa"
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
+                        <Image src="/aboutUs4.png" alt="Our Heritage - Pings Ping Tinapa" fill unoptimized className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
                       </div>
-                      {/* Decorative elements */}
                       <div className="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-[#f8610e]/20 blur-xl" />
                       <div className="absolute -top-6 -left-6 h-32 w-32 rounded-full bg-[#f8610e]/10 blur-xl" />
                     </motion.div>
@@ -543,19 +426,23 @@ export default function ImprovedHomePage() {
               </motion.div>
             )}
           </AnimatePresence>
+
           {/* Navigation Arrows */}
           <button
+            aria-label="Previous slide"
             onClick={prevSlide}
             className="absolute top-1/2 left-6 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-white"
           >
             <ChevronLeft className="h-6 w-6 text-gray-700" />
           </button>
           <button
+            aria-label="Next slide"
             onClick={nextSlide}
             className="absolute top-1/2 right-6 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-white"
           >
             <ChevronRight className="h-6 w-6 text-gray-700" />
           </button>
+
           {/* Slide Indicators */}
           <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 space-x-3">
             {Array.from({ length: totalSlides }).map((_, index) => (
@@ -563,151 +450,135 @@ export default function ImprovedHomePage() {
                 key={index}
                 onClick={() => goToSlide(index)}
                 className={`h-3 w-3 rounded-full transition-all duration-300 ${
-                  currentSlide === index
-                    ? "scale-125 bg-[#f8610e]"
-                    : "bg-white/60 hover:bg-white/80"
+                  currentSlide === index ? "scale-125 bg-[#f8610e]" : "bg-white/60 hover:bg-white/80"
                 }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
         </div>
       </section>
-      {/* Products Showcase */}
+
+      {/* Unified Products Showcase (Tinapa + Pasalubong) */}
       <section id="products" className="mx-auto max-w-7xl px-6 py-16">
-        <h3 className="mb-12 text-center text-4xl font-bold text-gray-900">
-          Our Products
-        </h3>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {products?.map(({ id, name, description, image, price }) => (
-            <Card
-              key={id}
-              className="flex h-full flex-col overflow-hidden rounded-2xl px-4 shadow-lg"
-            >
-              <div className="relative h-64 w-full">
-                <Image
-                  src={image || "/placeholder.svg"}
-                  alt={name}
-                  fill
-                  unoptimized
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover"
-                />
+        <h3 className="mb-12 text-center text-4xl font-bold text-gray-900">Our Products</h3>
+
+        {loadingAll ? (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-[420px] animate-pulse rounded-2xl bg-white p-4 shadow-lg">
+                <div className="h-64 w-full rounded-xl bg-gray-200" />
+                <div className="mt-4 h-5 w-2/3 rounded bg-gray-200" />
+                <div className="mt-3 h-4 w-full rounded bg-gray-100" />
+                <div className="mt-2 h-4 w-5/6 rounded bg-gray-100" />
+                <div className="mt-4 h-6 w-24 rounded bg-gray-200" />
               </div>
-              <CardContent className="flex flex-grow flex-col space-y-4 p-6">
-                <h4 className="text-xl font-bold text-gray-900">{name}</h4>
-                <p className="flex-grow text-sm leading-relaxed text-gray-600">
-                  {description}
-                </p>
-                <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">
-                  ₱{price}
-                </p>
-                <div className="mt-4">
-                  <Button
-                    onClick={() => {
-                      const element = document.getElementById("message");
-                      if (element) {
-                        element.scrollIntoView({ behavior: "smooth" });
-                      } else {
-                        router.push("#message");
-                      }
-                    }}
-                    className="w-full rounded-xl bg-[#f8610e] font-medium text-white shadow-md transition-all hover:bg-[#f8610e]/90 hover:shadow-lg"
-                  >
-                    Order now
-                  </Button>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {allProducts.map(({ id, name, description, image, price }) => (
+              <Card
+                key={id}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setSelectedProduct({ id, name, description, image, price });
+                  setIsProductOpen(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setSelectedProduct({ id, name, description, image, price });
+                    setIsProductOpen(true);
+                  }
+                }}
+                className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
+              >
+                <div className="relative h-64 w-full">
+                  <Image
+                    src={image || "/placeholder.svg"}
+                    alt={name}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <CardContent className="flex flex-grow flex-col space-y-4 p-6">
+                  <h4 className="text-xl font-bold text-gray-900">{name}</h4>
+                  <p className="flex-grow text-sm leading-relaxed text-gray-600">
+                    {description?.length > 140 ? `${description.slice(0, 140)}…` : description}
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">
+                    ₱{Number(price ?? 0).toLocaleString("en-PH")}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Pasalubong Section */}
-      <section id="pasalubong" className="mx-auto max-w-7xl px-6 py-16">
-        <h3 className="mb-12 text-center text-4xl font-bold text-gray-900">
-          Pasalubong Gifts
-        </h3>
-        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {pasalubongItems?.map(({ id, name, description, image, price }) => (
-            <Card
-              key={id}
-              className="flex h-full flex-col overflow-hidden rounded-2xl px-4 shadow-lg"
-            >
-              <div className="relative h-64 w-full">
-                <Image
-                  src={image || "/placeholder.svg"}
-                  alt={name}
-                  fill
-                  unoptimized
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  className="object-cover"
-                />
-              </div>
-              <CardContent className="flex flex-grow flex-col space-y-4 p-6">
-                <h4 className="text-xl font-bold text-gray-900">{name}</h4>
-                <p className="flex-grow text-sm leading-relaxed text-gray-600">
-                  {description}
-                </p>
-                <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">
-                  ₱{price}
-                </p>
-                <div className="mt-4">
-                  <Button
-                    onClick={() => {
-                      const element = document.getElementById("message");
-                      if (element) {
-                        element.scrollIntoView({ behavior: "smooth" });
-                      } else {
-                        router.push("#message");
-                      }
-                    }}
-                    className="w-full rounded-xl bg-[#f8610e] font-medium text-white shadow-md transition-all hover:bg-[#f8610e]/90 hover:shadow-lg"
-                  >
-                    Order now
-                  </Button>
+      {/* NEW: Product Details Dialog */}
+      <Dialog open={isProductOpen} onOpenChange={setIsProductOpen}>
+        <DialogContent className="max-w-2xl">
+          {selectedProduct && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-[#f8610e]">{selectedProduct.name}</DialogTitle>
+                <DialogDescription>Product details</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="relative h-56 w-full overflow-hidden rounded-xl">
+                  <Image
+                    src={selectedProduct.image || "/placeholder.svg"}
+                    alt={selectedProduct.name}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+                <div className="space-y-4">
+                  <p className="text-gray-700">{selectedProduct.description}</p>
+                  {selectedProduct.price != null && (
+                    <p className="text-2xl font-bold text-[#f8610e]">
+                      ₱{Number(selectedProduct.price).toLocaleString("en-PH")}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      className="bg-[#f8610e] hover:bg-[#f8610e]/90"
+                      onClick={() => setIsProductOpen(false)}
+                    >
+                      Close
+                    </Button>
+                    {/* Add CTA (e.g., Inquire) later if needed */}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Removed the separate Pasalubong section */}
 
       <section className="bg-gray-50 py-20" id="message">
         <div className="mx-auto max-w-7xl px-6" id="inquire">
-          <motion.div
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-            variants={staggerContainer}
-            className="text-center"
-          >
-            <motion.h2
-              className="mb-4 text-4xl font-bold text-gray-900 lg:text-5xl"
-              variants={fadeInUp}
-            >
+          <motion.div initial="initial" whileInView="animate" viewport={{ once: true }} variants={staggerContainer} className="text-center">
+            <motion.h2 className="mb-4 text-4xl font-bold text-gray-900 lg:text-5xl" variants={fadeInUp}>
               Get In <span className="text-[#f8610e]">Touch</span>
             </motion.h2>
-            <motion.p
-              className="mx-auto mb-16 max-w-2xl text-lg text-gray-600"
-              variants={fadeInUp}
-            >
-              Ready to experience authentic Filipino tinapa? Contact us today
-              for orders, inquiries, or to learn more about our products.
+            <motion.p className="mx-auto mb-16 max-w-2xl text-lg text-gray-600" variants={fadeInUp}>
+              Ready to experience authentic Filipino tinapa? Contact us today for orders, inquiries, or to learn more about our products.
             </motion.p>
           </motion.div>
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Contact Information */}
-            <motion.div
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="space-y-8"
-            >
+            <motion.div initial="initial" whileInView="animate" viewport={{ once: true }} variants={staggerContainer} className="space-y-8">
               <motion.div variants={fadeInUp}>
-                <h3 className="mb-6 text-2xl font-bold text-gray-900">
-                  Contact Information
-                </h3>
+                <h3 className="mb-6 text-2xl font-bold text-gray-900">Contact Information</h3>
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8610e]/10">
@@ -755,9 +626,7 @@ export default function ImprovedHomePage() {
                       <Clock className="h-6 w-6 text-[#f8610e]" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">
-                        Business Hours
-                      </h4>
+                      <h4 className="font-semibold text-gray-900">Business Hours</h4>
                       <p className="text-gray-600">
                         Monday - Saturday: 8:00 AM - 6:00 PM
                         <br />
@@ -768,31 +637,20 @@ export default function ImprovedHomePage() {
                 </div>
               </motion.div>
             </motion.div>
+
             {/* Contact Form */}
-            <motion.div
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-              variants={fadeInUp}
-            >
+            <motion.div initial="initial" whileInView="animate" viewport={{ once: true }} variants={fadeInUp}>
               <Card className="overflow-hidden rounded-2xl shadow-lg">
                 <CardContent className="p-8">
-                  <h3 className="mb-6 text-2xl font-bold text-gray-900">
-                    Send us a Message
-                  </h3>
+                  <h3 className="mb-6 text-2xl font-bold text-gray-900">Send us a Message</h3>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     {submitSuccess && (
                       <div className="rounded-md bg-green-50 p-4">
                         <div className="flex">
                           <div className="ml-3">
-                            <h3 className="text-sm font-medium text-green-800">
-                              Message sent successfully!
-                            </h3>
+                            <h3 className="text-sm font-medium text-green-800">Message sent successfully!</h3>
                             <div className="mt-2 text-sm text-green-700">
-                              <p>
-                                Thank you for contacting us Well get back to you
-                                soon.
-                              </p>
+                              <p>Thank you for contacting us Well get back to you soon.</p>
                             </div>
                           </div>
                         </div>
@@ -800,57 +658,36 @@ export default function ImprovedHomePage() {
                     )}
                     <div className="grid gap-6 sm:grid-cols-2">
                       <div>
-                        <label
-                          htmlFor="firstname"
-                          className="mb-2 block text-sm font-medium text-gray-700"
-                        >
+                        <label htmlFor="firstname" className="mb-2 block text-sm font-medium text-gray-700">
                           First Name
                         </label>
                         <input
                           id="firstname"
                           {...register("firstname")}
                           className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
-                            errors.firstname
-                              ? "border-red-500"
-                              : "border-gray-300"
+                            errors.firstname ? "border-red-500" : "border-gray-300"
                           }`}
                           placeholder="John"
                         />
-                        {errors.firstname && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.firstname.message}
-                          </p>
-                        )}
+                        {errors.firstname && <p className="mt-1 text-sm text-red-600">{errors.firstname.message}</p>}
                       </div>
                       <div>
-                        <label
-                          htmlFor="lastname"
-                          className="mb-2 block text-sm font-medium text-gray-700"
-                        >
+                        <label htmlFor="lastname" className="mb-2 block text-sm font-medium text-gray-700">
                           Last Name
                         </label>
                         <input
                           id="lastname"
                           {...register("lastname")}
                           className={`w-full rounded-lg border px-4 py-3 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20 focus:outline-none ${
-                            errors.lastname
-                              ? "border-red-500"
-                              : "border-gray-300"
+                            errors.lastname ? "border-red-500" : "border-gray-300"
                           }`}
                           placeholder="Doe"
                         />
-                        {errors.lastname && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.lastname.message}
-                          </p>
-                        )}
+                        {errors.lastname && <p className="mt-1 text-sm text-red-600">{errors.lastname.message}</p>}
                       </div>
                     </div>
                     <div>
-                      <label
-                        htmlFor="email"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                      >
+                      <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
                         Email
                       </label>
                       <input
@@ -862,17 +699,10 @@ export default function ImprovedHomePage() {
                         }`}
                         placeholder="john.doe@example.com"
                       />
-                      {errors.email && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.email.message}
-                        </p>
-                      )}
+                      {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
                     </div>
                     <div>
-                      <label
-                        htmlFor="phone"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                      >
+                      <label htmlFor="phone" className="mb-2 block text-sm font-medium text-gray-700">
                         Phone Number
                       </label>
                       <input
@@ -884,17 +714,10 @@ export default function ImprovedHomePage() {
                         }`}
                         placeholder="09171234567"
                       />
-                      {errors.phone && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.phone.message}
-                        </p>
-                      )}
+                      {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>}
                     </div>
                     <div>
-                      <label
-                        htmlFor="subject"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                      >
+                      <label htmlFor="subject" className="mb-2 block text-sm font-medium text-gray-700">
                         Subject
                       </label>
                       <input
@@ -905,17 +728,10 @@ export default function ImprovedHomePage() {
                         }`}
                         placeholder="Product Inquiry"
                       />
-                      {errors.subject && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.subject.message}
-                        </p>
-                      )}
+                      {errors.subject && <p className="mt-1 text-sm text-red-600">{errors.subject.message}</p>}
                     </div>
                     <div>
-                      <label
-                        htmlFor="message"
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                      >
+                      <label htmlFor="message" className="mb-2 block text-sm font-medium text-gray-700">
                         Message
                       </label>
                       <textarea
@@ -926,12 +742,8 @@ export default function ImprovedHomePage() {
                           errors.message ? "border-red-500" : "border-gray-300"
                         }`}
                         placeholder="Tell us about your inquiry or order requirements..."
-                      ></textarea>
-                      {errors.message && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.message.message}
-                        </p>
-                      )}
+                      />
+                      {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>}
                     </div>
                     <Button
                       type="submit"
@@ -947,6 +759,7 @@ export default function ImprovedHomePage() {
           </div>
         </div>
       </section>
+
       {/* Footer */}
       <footer className="bg-gray-900 py-12 text-white">
         <div className="mx-auto max-w-7xl px-6">
@@ -962,22 +775,13 @@ export default function ImprovedHomePage() {
                 </div>
               </div>
               <p className="mb-4 text-gray-400">
-                Preserving the authentic taste of Filipino tinapa for over 25
-                years. Made with love, served with pride.
+                Preserving the authentic taste of Filipino tinapa for over 25 years. Made with love, served with pride.
               </p>
               <div className="flex space-x-4">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-600 bg-transparent text-gray-400 hover:bg-[#f8610e] hover:text-white"
-                >
+                <Button size="sm" variant="outline" className="border-gray-600 bg-transparent text-gray-400 hover:bg-[#f8610e] hover:text-white">
                   Facebook
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-600 bg-transparent text-gray-400 hover:bg-[#f8610e] hover:text-white"
-                >
+                <Button size="sm" variant="outline" className="border-gray-600 bg-transparent text-gray-400 hover:bg-[#f8610e] hover:text-white">
                   Instagram
                 </Button>
               </div>
@@ -995,13 +799,9 @@ export default function ImprovedHomePage() {
                     Products
                   </a>
                 </li>
+                {/* Pasalubong link removed */}
                 <li>
-                  <a href="#pasalubong" className="hover:text-[#f8610e]">
-                    Pasalubong
-                  </a>
-                </li>
-                <li>
-                  <a href="#contact" className="hover:text-[#f8610e]">
+                  <a href="#message" className="hover:text-[#f8610e]">
                     Contact
                   </a>
                 </li>
@@ -1010,7 +810,7 @@ export default function ImprovedHomePage() {
             <div>
               <h4 className="mb-4 font-semibold">Contact Info</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Cebu City, Philippines</li>
+                <li>Calbayog City, Philippines</li>
                 <li>+63 32 123 4567</li>
                 <li>info@pingspingtinapa.com</li>
               </ul>

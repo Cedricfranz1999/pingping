@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { Calendar, Clock, Plus, Search, Trash2, User } from "lucide-react";
+import { Calendar, Clock, Plus, Search, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
 
@@ -145,35 +145,14 @@ const AttendancePage: NextPage = () => {
       </Head>
 
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Header — buttons removed */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-[#f8610e] md:text-3xl">
             Attendance Records
           </h1>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setIsCheckInModalOpen(true)}
-              className="bg-green-600 hover:bg-green-600/90"
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Check In
-            </Button>
-            <Button
-              onClick={() => setIsCheckOutModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-600/90"
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Check Out
-            </Button>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-[#f8610e] hover:bg-[#f8610e]/90"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Record
-            </Button>
-          </div>
         </div>
 
+        {/* Filters */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="relative">
             <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
@@ -215,11 +194,12 @@ const AttendancePage: NextPage = () => {
           />
         </div>
 
+        {/* Table */}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead className="w-[80px]">ID</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Time In</TableHead>
@@ -265,6 +245,16 @@ const AttendancePage: NextPage = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {(!attendances || attendances.length === 0) && (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="py-8 text-center text-sm text-gray-500"
+                  >
+                    No records found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -442,7 +432,7 @@ const AttendancePage: NextPage = () => {
 
       {/* Check Out Modal */}
       <Dialog open={isCheckOutModalOpen} onOpenChange={setIsCheckOutModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm-max-w-[425px] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-blue-600">
               Employee Check Out

@@ -66,30 +66,19 @@ const ProductReportsPage = () => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined,
-  });
-  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined; }>({ from: undefined, to: undefined });
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>();
-  const [actionFilter, setActionFilter] = useState<
-    "ADD" | "EDIT" | "DELETE" | undefined
-  >();
+  const [actionFilter, setActionFilter] = useState<"ADD" | "EDIT" | "DELETE" | undefined>();
 
   const pageSize = 10;
 
   // Fetch actual data from the database
-  const { data: summaryData, isLoading: summaryLoading } =
-    api.reports.getStockSummary.useQuery();
+  const { data: summaryData, isLoading: summaryLoading } = api.reports.getStockSummary.useQuery();
   const { data: productsData, isLoading: productsLoading } =
     api.reports.getProducts.useQuery({
       skip: (page - 1) * pageSize,
       take: pageSize,
       search,
-      stockFilter,
       dateFrom: dateRange.from,
       dateTo: dateRange.to,
       categoryId: categoryFilter,
@@ -116,30 +105,19 @@ const ProductReportsPage = () => {
     exportProductsMutation.mutate(
       {
         search,
-        stockFilter,
         dateFrom: dateRange.from,
         dateTo: dateRange.to,
         categoryId: categoryFilter,
       },
       {
         onSuccess: (data) => {
-          downloadCSV(
-            data.csv,
-            `products-export-${format(new Date(), "yyyy-MM-dd")}.csv`,
-          );
-          toast({
-            title: "Export Successful",
-            description: "Products data has been exported to CSV",
-          });
+          downloadCSV(data.csv, `products-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
+          toast({ title: "Export Successful", description: "Products data has been exported to CSV" });
         },
         onError: () => {
-          toast({
-            title: "Export Failed",
-            description: "Failed to export products data",
-            variant: "destructive",
-          });
+          toast({ title: "Export Failed", description: "Failed to export products data", variant: "destructive" });
         },
-      },
+      }
     );
   };
 
@@ -152,23 +130,13 @@ const ProductReportsPage = () => {
       },
       {
         onSuccess: (data) => {
-          downloadCSV(
-            data.csv,
-            `activity-export-${format(new Date(), "yyyy-MM-dd")}.csv`,
-          );
-          toast({
-            title: "Export Successful",
-            description: "Activity data has been exported to CSV",
-          });
+          downloadCSV(data.csv, `activity-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
+          toast({ title: "Export Successful", description: "Activity data has been exported to CSV" });
         },
         onError: () => {
-          toast({
-            title: "Export Failed",
-            description: "Failed to export activity data",
-            variant: "destructive",
-          });
+          toast({ title: "Export Failed", description: "Failed to export activity data", variant: "destructive" });
         },
-      },
+      }
     );
   };
 
@@ -185,18 +153,7 @@ const ProductReportsPage = () => {
   };
 
   // Color palette for pie chart
-  const COLORS = [
-    "#f97316", // Orange primary
-    "#3b82f6", // Blue
-    "#10b981", // Emerald
-    "#ef4444", // Red
-    "#8b5cf6", // Violet
-    "#06b6d4", // Cyan
-    "#84cc16", // Lime
-    "#ec4899", // Pink
-    "#6366f1", // Indigo
-    "#f59e0b", // Amber
-  ];
+  const COLORS = ["#f97316","#3b82f6","#10b981","#ef4444","#8b5cf6","#06b6d4","#84cc16","#ec4899","#6366f1","#f59e0b"];
 
   if (summaryLoading || categoriesLoading) {
     return (
@@ -205,9 +162,7 @@ const ProductReportsPage = () => {
           <div className="rounded-full bg-gradient-to-r from-[#f8610e] to-orange-600 p-3">
             <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
-          <p className="text-lg font-medium text-gray-600">
-            Loading reports...
-          </p>
+          <p className="text-lg font-medium text-gray-600">Loading reports...</p>
         </div>
       </div>
     );
@@ -224,12 +179,8 @@ const ProductReportsPage = () => {
 
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">
-                Product Reports
-              </h1>
-              <p className="text-lg text-orange-100">
-                Comprehensive inventory management and analytics dashboard
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">Product Reports</h1>
+              <p className="text-lg text-orange-100">Comprehensive inventory management and analytics dashboard</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button
@@ -239,11 +190,7 @@ const ProductReportsPage = () => {
                 size="lg"
                 className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20"
               >
-                {exportProductsMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
+                {exportProductsMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Export Products
               </Button>
               <Button
@@ -253,11 +200,7 @@ const ProductReportsPage = () => {
                 size="lg"
                 className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20"
               >
-                {exportActivityMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
+                {exportActivityMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Export Activity
               </Button>
             </div>
@@ -270,12 +213,8 @@ const ProductReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium tracking-wider text-blue-600 uppercase">
-                    Total Products
-                  </p>
-                  <p className="text-3xl font-bold text-blue-900">
-                    {summaryData?.totalProducts ?? 0}
-                  </p>
+                  <p className="text-sm font-medium tracking-wider text-blue-600 uppercase">Total Products</p>
+                  <p className="text-3xl font-bold text-blue-900">{summaryData?.totalProducts ?? 0}</p>
                   <div className="flex items-center text-xs text-blue-600">
                     <TrendingUp className="mr-1 h-3 w-3" />
                     <span>Active inventory</span>
@@ -292,12 +231,8 @@ const ProductReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium tracking-wider text-orange-600 uppercase">
-                    Low Stock
-                  </p>
-                  <p className="text-3xl font-bold text-orange-900">
-                    {summaryData?.lowStockCount ?? 0}
-                  </p>
+                  <p className="text-sm font-medium tracking-wider text-orange-600 uppercase">Low Stock</p>
+                  <p className="text-3xl font-bold text-orange-900">{summaryData?.lowStockCount ?? 0}</p>
                   <div className="flex items-center text-xs text-orange-600">
                     <AlertTriangle className="mr-1 h-3 w-3" />
                     <span>Needs attention</span>
@@ -314,12 +249,8 @@ const ProductReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium tracking-wider text-red-600 uppercase">
-                    Out of Stock
-                  </p>
-                  <p className="text-3xl font-bold text-red-900">
-                    {summaryData?.outOfStockCount ?? 0}
-                  </p>
+                  <p className="text-sm font-medium tracking-wider text-red-600 uppercase">Out of Stock</p>
+                  <p className="text-3xl font-bold text-red-900">{summaryData?.outOfStockCount ?? 0}</p>
                   <div className="flex items-center text-xs text-red-600">
                     <Eye className="mr-1 h-3 w-3" />
                     <span>Requires restock</span>
@@ -336,12 +267,8 @@ const ProductReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium tracking-wider text-green-600 uppercase">
-                    Recent Activities
-                  </p>
-                  <p className="text-3xl font-bold text-green-900">
-                    {summaryData?.recentActivities ?? 0}
-                  </p>
+                  <p className="text-sm font-medium tracking-wider text-green-600 uppercase">Recent Activities</p>
+                  <p className="text-3xl font-bold text-green-900">{summaryData?.recentActivities ?? 0}</p>
                   <div className="flex items-center text-xs text-green-600">
                     <Activity className="mr-1 h-3 w-3" />
                     <span>Active tracking</span>
@@ -371,42 +298,18 @@ const ProductReportsPage = () => {
                   <div className="flex h-full items-center justify-center">
                     <div className="flex flex-col items-center space-y-2">
                       <Loader2 className="h-8 w-8 animate-spin text-[#f8610e]" />
-                      <p className="text-sm text-gray-500">
-                        Loading chart data...
-                      </p>
+                      <p className="text-sm text-gray-500">Loading chart data...</p>
                     </div>
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData?.stockChart ?? []}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
+                    <BarChart data={chartData?.stockChart ?? []} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="name"
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                        tick={{ fill: "#64748b", fontSize: 12 }}
-                      />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{ fill: "#64748b", fontSize: 12 }} />
                       <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "white",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                        }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
                       <Legend />
-                      <Bar
-                        dataKey="stock"
-                        name="Stock Level"
-                        fill="#f97316"
-                        radius={[4, 4, 0, 0]}
-                        className="drop-shadow-sm"
-                      />
+                      <Bar dataKey="stock" name="Stock Level" fill="#f97316" radius={[4, 4, 0, 0]} className="drop-shadow-sm" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -428,9 +331,7 @@ const ProductReportsPage = () => {
                   <div className="flex h-full items-center justify-center">
                     <div className="flex flex-col items-center space-y-2">
                       <Loader2 className="h-8 w-8 animate-spin text-[#f8610e]" />
-                      <p className="text-sm text-gray-500">
-                        Loading chart data...
-                      </p>
+                      <p className="text-sm text-gray-500">Loading chart data...</p>
                     </div>
                   </div>
                 ) : (
@@ -445,27 +346,14 @@ const ProductReportsPage = () => {
                         fill="#8884d8"
                         dataKey="count"
                         nameKey="name"
-                        label={({ name, percent }) =>
-                          `${name}: ${((percent as any) * 100).toFixed(0)}%`
-                        }
+                        label={({ name, percent }) => `${name}: ${((percent as any) * 100).toFixed(0)}%`}
                         className="text-sm font-medium"
                       >
                         {chartData?.categoryChart.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                            className="drop-shadow-sm"
-                          />
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} className="drop-shadow-sm" />
                         ))}
                       </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "white",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                        }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -494,26 +382,12 @@ const ProductReportsPage = () => {
                   className="rounded-xl border-gray-200 pl-10 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20"
                 />
               </div>
-              <Select
-                value={stockFilter}
-                onValueChange={(value: "all" | "low" | "out") =>
-                  setStockFilter(value)
-                }
-              >
-                <SelectTrigger className="w-[180px] rounded-xl border-gray-200 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20">
-                  <SelectValue placeholder="Stock Status" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all">All Stock</SelectItem>
-                  <SelectItem value="low">Low Stock (≤10)</SelectItem>
-                  <SelectItem value="out">Out of Stock</SelectItem>
-                </SelectContent>
-              </Select>
+
+              {/* Removed the Stock dropdown here */}
+
               <Select
                 value={categoryFilter?.toString() ?? ""}
-                onValueChange={(value) =>
-                  setCategoryFilter(value ? parseInt(value) : undefined)
-                }
+                onValueChange={(value) => setCategoryFilter(value ? parseInt(value) : undefined)}
                 disabled={categoriesLoading}
               >
                 <SelectTrigger className="w-[180px] rounded-xl border-gray-200 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20">
@@ -522,30 +396,27 @@ const ProductReportsPage = () => {
                 <SelectContent className="rounded-xl">
                   <SelectItem value="all-categories">All Categories</SelectItem>
                   {categories?.map((category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                    >
+                    <SelectItem key={category.id} value={category.id.toString()}>
                       {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-[280px] justify-start rounded-xl border-gray-200 text-left font-normal hover:border-[#f8610e]",
-                      !dateRange.from && "text-muted-foreground",
+                      !dateRange.from && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange.from ? (
                       dateRange.to ? (
                         <>
-                          {format(dateRange.from, "LLL dd, y")} -{" "}
-                          {format(dateRange.to, "LLL dd, y")}
+                          {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
                         </>
                       ) : (
                         format(dateRange.from, "LLL dd, y")
@@ -559,12 +430,7 @@ const ProductReportsPage = () => {
                   <Calendar
                     mode="range"
                     selected={dateRange}
-                    onSelect={(range) =>
-                      setDateRange({
-                        from: range?.from,
-                        to: range?.to,
-                      })
-                    }
+                    onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
                     numberOfMonths={2}
                   />
                 </PopoverContent>
@@ -587,11 +453,7 @@ const ProductReportsPage = () => {
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
               >
-                {exportProductsMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
+                {exportProductsMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Export
               </Button>
             </div>
@@ -608,21 +470,11 @@ const ProductReportsPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b border-gray-100 bg-gray-50/50">
-                      <TableHead className="font-semibold text-gray-700">
-                        Product
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-700">
-                        Categories
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-700">
-                        Stock
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-700">
-                        Price
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-700">
-                        Status
-                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">Product</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Categories</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Stock</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Price</TableHead>
+                      {/* Status column removed */}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -635,12 +487,8 @@ const ProductReportsPage = () => {
                       >
                         <TableCell className="p-4">
                           <div className="space-y-1">
-                            <div className="font-semibold text-gray-900">
-                              {product.name}
-                            </div>
-                            <div className="line-clamp-1 text-sm text-gray-600">
-                              {product.description}
-                            </div>
+                            <div className="font-semibold text-gray-900">{product.name}</div>
+                            <div className="line-clamp-1 text-sm text-gray-600">{product.description}</div>
                           </div>
                         </TableCell>
                         <TableCell className="p-4">
@@ -662,42 +510,17 @@ const ProductReportsPage = () => {
                               product.stock === 0
                                 ? "text-red-600"
                                 : product.stock <= 10
-                                  ? "text-orange-600"
-                                  : "text-green-600"
+                                ? "text-orange-600"
+                                : "text-green-600"
                             }`}
                           >
                             {product.stock}
                           </span>
                         </TableCell>
                         <TableCell className="p-4">
-                          <span className="text-lg font-bold text-gray-900">
-                            {product.price}
-                          </span>
+                          <span className="text-lg font-bold text-gray-900">{product.price}</span>
                         </TableCell>
-                        <TableCell className="p-4">
-                          <Badge
-                            variant={
-                              product.stock === 0
-                                ? "destructive"
-                                : product.stock <= 10
-                                  ? "secondary"
-                                  : "default"
-                            }
-                            className={`rounded-full font-medium ${
-                              product.stock === 0
-                                ? "bg-red-100 text-red-800"
-                                : product.stock <= 10
-                                  ? "bg-orange-100 text-orange-800"
-                                  : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {product.stock === 0
-                              ? "Out of Stock"
-                              : product.stock <= 10
-                                ? "Low Stock"
-                                : "In Stock"}
-                          </Badge>
-                        </TableCell>
+                        {/* Status cell removed */}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -718,9 +541,7 @@ const ProductReportsPage = () => {
               <div className="flex gap-2">
                 <Select
                   value={actionFilter ?? ""}
-                  onValueChange={(value: "ADD" | "EDIT" | "DELETE" | "") =>
-                    setActionFilter(value || undefined)
-                  }
+                  onValueChange={(value: "ADD" | "EDIT" | "DELETE" | "") => setActionFilter(value || undefined)}
                 >
                   <SelectTrigger className="w-[180px] rounded-xl border-gray-200">
                     <SelectValue placeholder="Filter by action" />
@@ -738,11 +559,7 @@ const ProductReportsPage = () => {
                   variant="outline"
                   className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
                 >
-                  {exportActivityMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
+                  {exportActivityMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Export
                 </Button>
               </div>
@@ -768,39 +585,28 @@ const ProductReportsPage = () => {
                           log.action === "ADD"
                             ? "bg-green-100 text-green-600"
                             : log.action === "EDIT"
-                              ? "bg-blue-100 text-blue-600"
-                              : "bg-red-100 text-red-600"
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-red-100 text-red-600"
                         }`}
                       >
                         {log.action === "ADD" && <Plus className="h-5 w-5" />}
                         {log.action === "EDIT" && <Edit className="h-5 w-5" />}
-                        {log.action === "DELETE" && (
-                          <Trash className="h-5 w-5" />
-                        )}
+                        {log.action === "DELETE" && <Trash className="h-5 w-5" />}
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">
                           {log.employee.firstname} {log.employee.lastname}
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {log.product.name}
-                        </div>
+                        <div className="text-sm text-gray-600">{log.product.name}</div>
                         <div className="mt-1 text-xs text-gray-500">
-                          {format(
-                            new Date(log.timestamp),
-                            "MMM dd, yyyy 'at' hh:mm a",
-                          )}
+                          {format(new Date(log.timestamp), "MMM dd, yyyy 'at' hh:mm a")}
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <Badge
                         variant={
-                          log.action === "ADD"
-                            ? "default"
-                            : log.action === "EDIT"
-                              ? "secondary"
-                              : "destructive"
+                          log.action === "ADD" ? "default" : log.action === "EDIT" ? "secondary" : "destructive"
                         }
                         className="rounded-full px-3 py-1"
                       >
@@ -811,23 +617,15 @@ const ProductReportsPage = () => {
                           {log.oldStock !== null && log.newStock !== null && (
                             <div className="flex items-center space-x-1 rounded-full bg-orange-50 px-2 py-1">
                               <span className="text-orange-600">Stock:</span>
-                              <span className="text-orange-500 line-through">
-                                {log.oldStock}
-                              </span>
-                              <span className="font-medium text-orange-800">
-                                → {log.newStock}
-                              </span>
+                              <span className="text-orange-500 line-through">{log.oldStock}</span>
+                              <span className="font-medium text-orange-800">→ {log.newStock}</span>
                             </div>
                           )}
                           {log.oldPrice && log.newPrice && (
                             <div className="flex items-center space-x-1 rounded-full bg-blue-50 px-2 py-1">
                               <span className="text-blue-600">Price:</span>
-                              <span className="text-blue-500 line-through">
-                                {log.oldPrice}
-                              </span>
-                              <span className="font-medium text-blue-800">
-                                → {log.newPrice}
-                              </span>
+                              <span className="text-blue-500 line-through">{log.oldPrice}</span>
+                              <span className="font-medium text-blue-800">→ {log.newPrice}</span>
                             </div>
                           )}
                         </div>
@@ -839,9 +637,7 @@ const ProductReportsPage = () => {
                   <div className="flex flex-col items-center justify-center py-12">
                     <FileText className="mb-4 h-10 w-10 text-gray-400" />
                     <p className="text-gray-500">No activity records found</p>
-                    <p className="mt-1 text-sm text-gray-400">
-                      Try adjusting your filters
-                    </p>
+                    <p className="mt-1 text-sm text-gray-400">Try adjusting your filters</p>
                   </div>
                 )}
               </div>
@@ -853,14 +649,9 @@ const ProductReportsPage = () => {
         {productsData && productsData.total > pageSize && (
           <div className="flex items-center justify-between rounded-2xl bg-white p-4 shadow">
             <div className="text-sm text-gray-600">
-              Showing{" "}
-              <span className="font-medium">{(page - 1) * pageSize + 1}</span>{" "}
-              to{" "}
-              <span className="font-medium">
-                {Math.min(page * pageSize, productsData.total)}
-              </span>{" "}
-              of <span className="font-medium">{productsData.total}</span>{" "}
-              products
+              Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{" "}
+              <span className="font-medium">{Math.min(page * pageSize, productsData.total)}</span> of{" "}
+              <span className="font-medium">{productsData.total}</span> products
             </div>
             <div className="flex space-x-2">
               <Button

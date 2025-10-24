@@ -1,3 +1,4 @@
+// ~/server/api/routers/inquiry.ts
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
@@ -28,6 +29,7 @@ const exportInput = z.object({
 // simple CSV helpers
 const csvQuote = (val: unknown) => {
   const s = String(val ?? "");
+  // escape double-quotes by doubling them, wrap in quotes if needed
   const escaped = s.replace(/"/g, '""');
   return /[",\r\n]/.test(escaped) ? `"${escaped}"` : escaped;
 };
@@ -38,7 +40,7 @@ const toCSV = (rows: Record<string, unknown>[], fields: string[]) => {
 };
 
 export const inquiryRouter = createTRPCRouter({
-  // Paginated list
+  // Paginated list for Reports page
   getAll: publicProcedure.input(listInput).query(async ({ input }) => {
     const { search, dateFrom, dateTo, page, limit } = input;
 
@@ -114,20 +116,19 @@ export const inquiryRouter = createTRPCRouter({
       orderBy: { createdAt: "desc" },
     });
 
-    // Include Status only if your schema has it. This code is safe either way.
     const fields = ["ID", "Name", "Email", "Phone", "Subject", "Message", "Status", "CreatedAt"];
     const mapped = rows.map((r) => ({
       ID: r.id,
-      Name: `${r.firstname ?? ""} ${r.lastname ?? ""}`.trim(),
+      Name: `${r.firstname} ${r.lastname}`.trim(),
       Email: r.email ?? "",
       Phone: r.phone ?? "",
       Subject: r.subject ?? "",
       Message: r.message ?? "",
-      Status: typeof (r as any).status === "boolean" ? ((r as any).status ? "Actioned" : "Pending") : "",
+    //   Status: r.status ? "Actioned" : "Pending",
       CreatedAt: r.createdAt.toISOString(),
     }));
 
-    const csv = toCSV(mapped as Record<string, unknown>[], fields);
+    const csv = toCSV(mapped, fields);
     return { csv };
   }),
 });

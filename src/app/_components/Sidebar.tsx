@@ -11,8 +11,6 @@ import {
   ChevronUp,
   UserCheck,
   Clock,
-  ListOrdered,
-  Codesandbox,
 } from "lucide-react";
 import { Label } from "~/components/ui/label";
 import { usePathname } from "next/navigation";
@@ -93,152 +91,29 @@ const Sidebar = () => {
                 </Link>
               </motion.div>
 
-              {/* Track Orders - with expandable children */}
+              {/* Inquiry (replaces Track Orders) */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
-                className="space-y-1"
               >
-                <div className="flex items-center">
-                  <div
-                    className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${
-                      expandedMenus["/track-orders"]
-                        ? "bg-white/20 backdrop-blur-sm"
-                        : "hover:bg-white/20 hover:backdrop-blur-sm"
+                <Link
+                  href="/admin/inquiry"
+                  className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                    isActive("/admin/inquiry")
+                      ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
+                      : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
+                  }`}
+                >
+                  <MessageSquare
+                    className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                      isActive("/admin/inquiry")
+                        ? "text-[#f8610e]"
+                        : "text-white"
                     }`}
-                  >
-                    <Codesandbox className="h-5 w-5" />
-                    Track Orders
-                  </div>
-                  <motion.button
-                    onClick={() => toggleMenu("/track-orders")}
-                    className="ml-2 rounded-lg p-2 text-white transition-all hover:bg-white/20 hover:backdrop-blur-sm"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <AnimatePresence mode="wait">
-                      {expandedMenus["/track-orders"] ? (
-                        <motion.div
-                          key="up"
-                          initial={{ rotate: 180 }}
-                          animate={{ rotate: 0 }}
-                          exit={{ rotate: 180 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="down"
-                          initial={{ rotate: 0 }}
-                          animate={{ rotate: 0 }}
-                          exit={{ rotate: 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
-                </div>
-                <AnimatePresence>
-                  {expandedMenus["/track-orders"] && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="ml-6 space-y-1 overflow-hidden"
-                    >
-                      <Link
-                        href="/admin/walk-in"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/walk-in")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <ListOrdered
-                          className={`h-4 w-4 ${
-                            isActive("/admin/walk-in")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        process orders
-                      </Link>
-                      <Link
-                        href="/admin/orders"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/orders")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <Users
-                          className={`h-4 w-4 ${
-                            isActive("/admin/orders")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        Order History
-                      </Link>
-                      <Link
-                        href="/admin/sales"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/sales")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <FileText
-                          className={`h-4 w-4 ${
-                            isActive("/admin/sales")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        Sales
-                      </Link>
-                      <Link
-                        href="/admin/inventory"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/inventory")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <Package
-                          className={`h-4 w-4 ${
-                            isActive("/admin/inventory")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        Inventory
-                      </Link>
-                      <Link
-                        href="/admin/inquiry"
-                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
-                          isActive("/admin/inquiry")
-                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
-                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
-                        }`}
-                      >
-                        <ListOrdered
-                          className={`h-4 w-4 ${
-                            isActive("/admin/inquiry")
-                              ? "text-[#f8610e]"
-                              : "text-white/90"
-                          }`}
-                        />
-                        Inquiry
-                      </Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  />
+                  Inquiry
+                </Link>
               </motion.div>
 
               {/* Employee - with expandable children */}
@@ -481,7 +356,7 @@ const Sidebar = () => {
                         : "text-white"
                     }`}
                   />
-                  User Feedback
+                  Feedback
                 </Link>
               </motion.div>
 

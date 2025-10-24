@@ -168,23 +168,23 @@ const EmployeePage = () => {
     },
   });
 
-  const toggleModifyMutation = api.employee.toggleModify.useMutation({
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Employee permissions updated",
-        variant: "default",
-      });
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // const toggleModifyMutation = api.employee.toggleModify.useMutation({
+  //   onSuccess: () => {
+  //     toast({
+  //       title: "Success!",
+  //       description: "Employee permissions updated",
+  //       variant: "default",
+  //     });
+  //     refetch();
+  //   },
+  //   onError: (error) => {
+  //     toast({
+  //       title: "Error",
+  //       description: error.message,
+  //       variant: "destructive",
+  //     });
+  //   },
+  // });
 
   const [formData, setFormData] = useState<{
     image: string;
@@ -302,9 +302,9 @@ const EmployeePage = () => {
     toggleActiveMutation.mutate({ id, isactive: !isactive });
   };
 
-  const handleToggleModify = (id: number, canModify: boolean) => {
-    toggleModifyMutation.mutate({ id, canModify: !canModify });
-  };
+  // const handleToggleModify = (id: number, canModify: boolean) => {
+  //   toggleModifyMutation.mutate({ id, canModify: !canModify });
+  // };
 
   const employees = employeeData?.employees || [];
   const totalEmployees = employeeData?.total || 0;
@@ -744,7 +744,7 @@ const EmployeePage = () => {
                             </span>
                           )}
                         </Button>
-                        <Button
+                        {/* <Button
                           size="sm"
                           variant="outline"
                           onClick={() =>
@@ -761,7 +761,7 @@ const EmployeePage = () => {
                           {!toggleModifyMutation.isPending && (
                             <span className="ml-1">Permissions</span>
                           )}
-                        </Button>
+                        </Button> */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button

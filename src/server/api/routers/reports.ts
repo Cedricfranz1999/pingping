@@ -9,11 +9,12 @@ export const productReportsRouter = createTRPCRouter({
         skip: z.number().optional(),
         take: z.number().optional(),
         search: z.string().optional(),
+        // keep stockFilter in the schema (to avoid FE errors) but ignore it below
         stockFilter: z.enum(["all", "low", "out"]).optional(),
         dateFrom: z.date().optional(),
         dateTo: z.date().optional(),
         categoryId: z.number().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const whereConditions: any = {};
@@ -26,30 +27,21 @@ export const productReportsRouter = createTRPCRouter({
         ];
       }
 
-      // Stock filter
-      if (input.stockFilter === "low") {
-        whereConditions.stock = { lte: 10, gt: 0 };
-      } else if (input.stockFilter === "out") {
-        whereConditions.stock = 0;
-      }
+      // ✅ Stock filter is now ignored on purpose
+      // if (input.stockFilter === "low") { ... }
+      // else if (input.stockFilter === "out") { ... }
 
       // Date filter
       if (input.dateFrom || input.dateTo) {
         whereConditions.createdAt = {};
-        if (input.dateFrom) {
-          whereConditions.createdAt.gte = input.dateFrom;
-        }
-        if (input.dateTo) {
-          whereConditions.createdAt.lte = input.dateTo;
-        }
+        if (input.dateFrom) whereConditions.createdAt.gte = input.dateFrom;
+        if (input.dateTo) whereConditions.createdAt.lte = input.dateTo;
       }
 
       // Category filter
       if (input.categoryId) {
         whereConditions.categories = {
-          some: {
-            categoryId: input.categoryId,
-          },
+          some: { categoryId: input.categoryId },
         };
       }
 
@@ -61,9 +53,7 @@ export const productReportsRouter = createTRPCRouter({
         take: input.take,
         include: {
           categories: {
-            include: {
-              category: true,
-            },
+            include: { category: true },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -78,19 +68,15 @@ export const productReportsRouter = createTRPCRouter({
         dateFrom: z.date().optional(),
         dateTo: z.date().optional(),
         action: z.enum(["ADD", "EDIT", "DELETE"]).optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const whereConditions: any = {};
 
       if (input.dateFrom || input.dateTo) {
         whereConditions.timestamp = {};
-        if (input.dateFrom) {
-          whereConditions.timestamp.gte = input.dateFrom;
-        }
-        if (input.dateTo) {
-          whereConditions.timestamp.lte = input.dateTo;
-        }
+        if (input.dateFrom) whereConditions.timestamp.gte = input.dateFrom;
+        if (input.dateTo) whereConditions.timestamp.lte = input.dateTo;
       }
 
       if (input.action) {
@@ -120,29 +106,21 @@ export const productReportsRouter = createTRPCRouter({
       z.object({
         dateFrom: z.date().optional(),
         dateTo: z.date().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const whereConditions: any = {};
 
       if (input.dateFrom || input.dateTo) {
         whereConditions.createdAt = {};
-        if (input.dateFrom) {
-          whereConditions.createdAt.gte = input.dateFrom;
-        }
-        if (input.dateTo) {
-          whereConditions.createdAt.lte = input.dateTo;
-        }
+        if (input.dateFrom) whereConditions.createdAt.gte = input.dateFrom;
+        if (input.dateTo) whereConditions.createdAt.lte = input.dateTo;
       }
 
       // Stock chart data - top 10 products by stock
       const products = await ctx.db.product.findMany({
         where: whereConditions,
-        select: {
-          id: true,
-          name: true,
-          stock: true,
-        },
+        select: { id: true, name: true, stock: true },
         orderBy: { stock: "desc" },
         take: 10,
       });
@@ -163,9 +141,7 @@ export const productReportsRouter = createTRPCRouter({
           name: true,
           _count: {
             select: {
-              products: {
-                where: whereConditions,
-              },
+              products: { where: whereConditions },
             },
           },
         },
@@ -177,18 +153,12 @@ export const productReportsRouter = createTRPCRouter({
         count: category._count.products,
       }));
 
-      return {
-        stockChart,
-        categoryChart,
-      };
+      return { stockChart, categoryChart };
     }),
 
   getCategories: publicProcedure.query(async ({ ctx }) => {
     return ctx.db.category.findMany({
-      select: {
-        id: true,
-        name: true,
-      },
+      select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
   }),
@@ -196,23 +166,14 @@ export const productReportsRouter = createTRPCRouter({
   getStockSummary: publicProcedure.query(async ({ ctx }) => {
     const totalProducts = await ctx.db.product.count();
     const lowStockCount = await ctx.db.product.count({
-      where: {
-        stock: {
-          lte: 10,
-          gt: 0,
-        },
-      },
+      where: { stock: { lte: 10, gt: 0 } },
     });
     const outOfStockCount = await ctx.db.product.count({
-      where: {
-        stock: 0,
-      },
+      where: { stock: 0 },
     });
     const recentActivities = await ctx.db.productLog.count({
       where: {
-        timestamp: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-        },
+        timestamp: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
     });
 
@@ -228,11 +189,12 @@ export const productReportsRouter = createTRPCRouter({
     .input(
       z.object({
         search: z.string().optional(),
+        // keep but ignore stockFilter here too
         stockFilter: z.enum(["all", "low", "out"]).optional(),
         dateFrom: z.date().optional(),
         dateTo: z.date().optional(),
         categoryId: z.number().optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const whereConditions: any = {};
@@ -244,43 +206,28 @@ export const productReportsRouter = createTRPCRouter({
         ];
       }
 
-      if (input.stockFilter === "low") {
-        whereConditions.stock = { lte: 10, gt: 0 };
-      } else if (input.stockFilter === "out") {
-        whereConditions.stock = 0;
-      }
+      // ✅ Stock filter ignored here as well
 
       if (input.dateFrom || input.dateTo) {
         whereConditions.createdAt = {};
-        if (input.dateFrom) {
-          whereConditions.createdAt.gte = input.dateFrom;
-        }
-        if (input.dateTo) {
-          whereConditions.createdAt.lte = input.dateTo;
-        }
+        if (input.dateFrom) whereConditions.createdAt.gte = input.dateFrom;
+        if (input.dateTo) whereConditions.createdAt.lte = input.dateTo;
       }
 
       if (input.categoryId) {
         whereConditions.categories = {
-          some: {
-            categoryId: input.categoryId,
-          },
+          some: { categoryId: input.categoryId },
         };
       }
 
       const products = await ctx.db.product.findMany({
         where: whereConditions,
         include: {
-          categories: {
-            include: {
-              category: true,
-            },
-          },
+          categories: { include: { category: true } },
         },
         orderBy: { name: "asc" },
       });
 
-      // Generate CSV
       const headers = [
         "ID",
         "Name",
@@ -304,7 +251,7 @@ export const productReportsRouter = createTRPCRouter({
             `"${product.categories.map((c) => c.category.name).join(", ")}"`,
             product.createdAt.toISOString(),
             product.updatedAt.toISOString(),
-          ].join(","),
+          ].join(",")
         ),
       ];
 
@@ -317,19 +264,15 @@ export const productReportsRouter = createTRPCRouter({
         dateFrom: z.date().optional(),
         dateTo: z.date().optional(),
         action: z.enum(["ADD", "EDIT", "DELETE"]).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const whereConditions: any = {};
 
       if (input.dateFrom || input.dateTo) {
         whereConditions.timestamp = {};
-        if (input.dateFrom) {
-          whereConditions.timestamp.gte = input.dateFrom;
-        }
-        if (input.dateTo) {
-          whereConditions.timestamp.lte = input.dateTo;
-        }
+        if (input.dateFrom) whereConditions.timestamp.gte = input.dateFrom;
+        if (input.dateTo) whereConditions.timestamp.lte = input.dateTo;
       }
 
       if (input.action) {
@@ -339,24 +282,12 @@ export const productReportsRouter = createTRPCRouter({
       const logs = await ctx.db.productLog.findMany({
         where: whereConditions,
         include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          employee: {
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true,
-            },
-          },
+          product: { select: { id: true, name: true } },
+          employee: { select: { id: true, firstname: true, lastname: true } },
         },
         orderBy: { timestamp: "desc" },
       });
 
-      // Generate CSV
       const headers = [
         "ID",
         "Action",
@@ -384,7 +315,7 @@ export const productReportsRouter = createTRPCRouter({
             log.oldPrice ?? "",
             log.newPrice ?? "",
             log.timestamp.toISOString(),
-          ].join(","),
+          ].join(",")
         ),
       ];
 
