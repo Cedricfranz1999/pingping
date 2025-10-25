@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { Calendar, Clock, QrCode } from "lucide-react";
+import { Calendar, Clock, Plus, Search, Trash2, User } from "lucide-react";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
-import { QRCodeCanvas } from "qrcode.react";
 
 // shadcn/ui imports
 import { Button } from "~/components/ui/button";
@@ -44,17 +43,28 @@ import {
 import { useAuthStore } from "~/app/store/auth-store";
 
 const AttendancePage: NextPage = () => {
-  const { user } = useAuthStore();
+  type AttendanceItem = {
+    id: number;
+    employee: { firstname: string; lastname: string; username?: string };
+    date: Date;
+    timeIn?: Date | null;
+    timeOut?: Date | null;
+    status?: "OVERTIME" | "UNDERTIME" | "EXACT_TIME" | null;
+  };
+  const { user, logout, isAuthenticated } = useAuthStore();
+  console.log("LLLL", user);
 
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [employeeId, setEmployeeId] = useState<number | undefined>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
-
-  // NEW: QR dialog state
-  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState<{
+    id: number;
+    employee: { firstname: string; lastname: string };
+  } | null>(null);
 
   const [newAttendance, setNewAttendance] = useState({
     employeeId: 0,
@@ -82,6 +92,19 @@ const AttendancePage: NextPage = () => {
     },
   });
 
+  const updateAttendance = api.attendanceRecord.update.useMutation({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
+  // const deleteAttendance = api.attendanceRecord.delete.useMutation({
+  //   onSuccess: () => {
+  //     void refetch();
+  //     setIsDeleteModalOpen(false);
+  //   },
+  // });
+
   const checkIn = api.attendanceRecord.checkIn.useMutation({
     onSuccess: () => {
       void refetch();
@@ -107,6 +130,12 @@ const AttendancePage: NextPage = () => {
     }
   };
 
+  // const handleDelete = () => {
+  //   if (selectedAttendance) {
+  //     deleteAttendance.mutate({ id: selectedAttendance.id });
+  //   }
+  // };
+
   const handleCheckIn = () => {
     if (newAttendance.employeeId) {
       checkIn.mutate({ employeeId: newAttendance.employeeId });
@@ -127,34 +156,52 @@ const AttendancePage: NextPage = () => {
       </Head>
 
       <div className="space-y-6">
-        {/* Header + My QR */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-[#f8610e] md:text-3xl">
             Attendance Records
           </h1>
-
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsQrDialogOpen(true)}
-              className="border-[#f8610e]/30 hover:bg-[#f8610e]/10"
+            {/* <Button
+              onClick={() => setIsCheckInModalOpen(true)}
+              className="bg-green-600 hover:bg-green-600/90"
             >
-              <QrCode className="mr-2 h-4 w-4" />
-              My QR
-            </Button>
+              <Clock className="mr-2 h-4 w-4" />
+              Check In
+            </Button> */}
+            {/* <Button
+              onClick={() => setIsCheckOutModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-600/90"
+            >
+              <Clock className="mr-2 h-4 w-4" />
+              Check Out
+            </Button> */}
+            {/* <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-[#f8610e] hover:bg-[#f8610e]/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Record
+            </Button> */}
           </div>
         </div>
 
-        {/* Filters row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* <Input className="w-64" placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} /> */}
-          {/* <Input className="w-64" type="number" placeholder="Filter by Employee ID" value={employeeId || ""} onChange={(e) => setEmployeeId(e.target.value ? Number(e.target.value) : undefined)} /> */}
+        {/**
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="relative">
+            <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+            <Input
+              placeholder="Search employees..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-auto justify-start text-left font-normal"
+                className="justify-start text-left font-normal"
               >
                 <Calendar className="mr-2 h-4 w-4" />
                 {selectedDate ? format(selectedDate, "PPP") : "Filter by date"}
@@ -169,46 +216,55 @@ const AttendancePage: NextPage = () => {
               />
             </PopoverContent>
           </Popover>
-        </div>
 
-        {/* Table (with horizontal scroll on small screens) */}
-        <div className="overflow-x-auto rounded-md border">
-          <Table className="min-w-[760px]">
+          <Input
+            type="number"
+            placeholder="Filter by Employee ID"
+            value={employeeId || ""}
+            onChange={(e) =>
+              setEmployeeId(e.target.value ? Number(e.target.value) : undefined)
+            }
+          />
+        </div>
+        **/}
+
+        <div className="rounded-md border">
+          <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[70px]">ID</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Employee</TableHead>
-                <TableHead className="w-[140px] text-center">Date</TableHead>
-                <TableHead className="w-[110px] text-center">Time In</TableHead>
-                <TableHead className="w-[110px] text-center">Time Out</TableHead>
-                <TableHead className="w-[120px] text-center">Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Time In</TableHead>
+                <TableHead>Time Out</TableHead>
+                <TableHead>Status</TableHead>
+                {/* <TableHead className="text-right">Actions</TableHead> */}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {attendances?.map((attendance) => (
+              {attendances?.map((attendance: AttendanceItem) => (
                 <TableRow key={attendance.id}>
                   <TableCell>{attendance.id}</TableCell>
-
                   <TableCell>
                     {attendance.employee.firstname}{" "}
                     {attendance.employee.lastname}
                   </TableCell>
-
-                  <TableCell className="text-center whitespace-nowrap">
+                  <TableCell>
                     {format(attendance.date, "MMM dd, yyyy")}
                   </TableCell>
-
-                  <TableCell className="text-center font-mono tabular-nums whitespace-nowrap">
-                    {attendance.timeIn ? format(attendance.timeIn, "hh:mm a") : "—"}
+                  <TableCell>
+                    {attendance.timeIn
+                      ? format(attendance.timeIn, "hh:mm a")
+                      : "-"}
                   </TableCell>
-
-                  <TableCell className="text-center font-mono tabular-nums whitespace-nowrap">
-                    {attendance.timeOut ? format(attendance.timeOut, "hh:mm a") : "—"}
+                  <TableCell>
+                    {attendance.timeOut
+                      ? format(attendance.timeOut, "hh:mm a")
+                      : "-"}
                   </TableCell>
-
-                  <TableCell className="text-center">
-                    {attendance.status || "—"}
-                  </TableCell>
+                  <TableCell>{attendance.status || "-"}</TableCell>
+                  {/* 
+                   */}
                 </TableRow>
               ))}
             </TableBody>
@@ -305,7 +361,7 @@ const AttendancePage: NextPage = () => {
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
-                onValueChange={(value) =>
+                onValueChange={(value: string) =>
                   setNewAttendance({
                     ...newAttendance,
                     status: value as "OVERTIME" | "UNDERTIME" | "EXACT_TIME",
@@ -432,65 +488,37 @@ const AttendancePage: NextPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* My QR Dialog */}
-      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Delete Confirmation Modal */}
+      {/* <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">My QR Code</DialogTitle>
+            <DialogTitle className="text-red-600">Delete Record</DialogTitle>
             <DialogDescription>
-              This QR encodes your ID for quick attendance scanning.
+              Are you sure you want to delete attendance record for{" "}
+              <span className="font-semibold">
+                {selectedAttendance?.employee.firstname}{" "}
+                {selectedAttendance?.employee.lastname}
+              </span>
+              ? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="flex flex-col items-center space-y-4">
-            <div className="rounded-lg border-2 border-[#f8610e]/20 p-4">
-              <QRCodeCanvas
-                id="attendance-qr-canvas"
-                value={(user?.userId ?? "").toString()}
-                size={256}
-                level="H"
-                includeMargin
-              />
-            </div>
-
-            <div className="text-center">
-              <p className="font-semibold">
-                {user?.firstName
-                  ? `${user.firstName} ${user?.lastName ?? ""}`.trim()
-                  : "Current User"}
-              </p>
-              <p className="text-muted-foreground text-sm">
-                ID: {user?.userId ?? "—"}
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-2">
-              <Button
-                onClick={() => {
-                  const canvas = document.getElementById(
-                    "attendance-qr-canvas"
-                  ) as HTMLCanvasElement | null;
-                  if (!canvas) return;
-                  try {
-                    const pngUrl = canvas.toDataURL("image/png");
-                    const link = document.createElement("a");
-                    link.href = pngUrl;
-                    link.download = `attendance-qr-${user?.userId ?? "user"}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                  } catch (err) {
-                    console.error(err);
-                  }
-                }}
-                className="bg-[#f8610e] hover:bg-[#f8610e]/90"
-              >
-                Download QR (PNG)
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteAttendance.isPending}
+            >
+              {deleteAttendance.isPending ? "Deleting..." : "Delete"}
+            </Button> */}
+          {/* </DialogFooter> */}
+        {/* </DialogContent> */}
+      {/* </Dialog> */}
     </>
   );
 };

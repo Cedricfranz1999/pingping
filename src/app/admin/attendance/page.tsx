@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type Key } from "react";
 import {
   Scanner,
   useDevices,
@@ -510,7 +510,7 @@ const AttendancePage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {getAttendanceHistory.data.map((record) => (
+                      {getAttendanceHistory.data.map((record: { id: Key | null | undefined; date: Date | null; timeIn: Date | null; timeOut: Date | null; status: any; }) => (
                         <TableRow key={record.id}>
                           <TableCell className="font-medium">
                             {formatDate(record.date)}

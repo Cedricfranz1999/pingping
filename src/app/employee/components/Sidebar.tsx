@@ -1,14 +1,56 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  MessageSquare,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  UserCheck,
+  Clock,
+  ListOrdered,
+  Codesandbox,
+} from "lucide-react";
 import { Label } from "~/components/ui/label";
+import { Button } from "~/components/ui/button";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { Clock } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuthStore } from "~/app/store/auth-store";
+import { QRCodeCanvas } from "qrcode.react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
+import { QrCode } from "lucide-react";
 
 const Sidebar = () => {
+  const { user, logout, isAuthenticated } = useAuthStore();
   const pathname = usePathname();
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
+    {},
+  );
+  const userCanModify = user?.canModify;
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const handleDownloadQr = () => {
+    const canvas = document.getElementById("employee-qr-canvas") as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `employee-${user?.userId}-qrcode.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   const isActive = (path: string) => pathname.startsWith(path);
+
+  const toggleMenu = (menu: string) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [menu]: !prev[menu],
+    }));
+  };
 
   return (
     <div
@@ -43,9 +85,10 @@ const Sidebar = () => {
             </div>
           </motion.div>
 
-          {/* Navigation (Attendance only) */}
+          {/* Navigation */}
           <div className="mt-6 flex-1 px-4">
             <nav className="space-y-2">
+              {/* Attendance Tab (Always shown) */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -69,8 +112,357 @@ const Sidebar = () => {
                   Attendance
                 </Link>
               </motion.div>
+
+              {/* QR Code Button */}
+              {user?.userId ? (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.15 }}
+                >
+                  <Button
+                    onClick={() => setIsQrOpen(true)}
+                    variant="outline"
+                    className="flex w-full items-center gap-3 rounded-xl border-white/30 bg-white/10 text-white hover:bg-white/20"
+                  >
+                    <QrCode className="h-5 w-5" />
+                    My QR Code
+                  </Button>
+                </motion.div>
+              ) : null}
+
+              {/* HIDDEN: per request, hide everything except Attendance */}
+              {false && (
+                <>
+                  {/* Dashboard */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                  >
+                    <Link
+                      href="/employee/dashboard"
+                      className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                        isActive("/employee/dashboard")
+                          ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
+                          : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
+                      }`}
+                    >
+                      <LayoutDashboard
+                        className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                          isActive("/employee/dashboard")
+                            ? "text-[#f8610e]"
+                            : "text-white"
+                        }`}
+                      />
+                      Dashboard
+                    </Link>
+                  </motion.div>
+
+                  {/* Track Orders - with expandable children */}
+                  {/* Hidden per request: keep only Inquiry visible; comment out group */}
+                  {/**
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                    className="space-y-1"
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${
+                          expandedMenus["/track-orders"]
+                            ? "bg-white/20 backdrop-blur-sm"
+                            : "hover:bg-white/20 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Codesandbox className="h-5 w-5" />
+                        Track Orders
+                      </div>
+                      <motion.button
+                        onClick={() => toggleMenu("/track-orders")}
+                        className="ml-2 rounded-lg p-2 text-white transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <AnimatePresence mode="wait">
+                          {expandedMenus["/track-orders"] ? (
+                            <motion.div
+                              key="up"
+                              initial={{ rotate: 180 }}
+                              animate={{ rotate: 0 }}
+                              exit={{ rotate: 180 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="down"
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: 0 }}
+                              exit={{ rotate: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.button>
+                    </div>
+                    <AnimatePresence>
+                      {expandedMenus["/track-orders"] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="ml-6 space-y-1 overflow-hidden"
+                        >
+                          <Link
+                            href="/employee/inquiry"
+                            className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                              isActive("/employee/inquiry")
+                                ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                                : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                            }`}
+                          >
+                            <ListOrdered
+                              className={`h-4 w-4 ${
+                                isActive("/employee/inquiry")
+                                  ? "text-[#f8610e]"
+                                  : "text-white/90"
+                              }`}
+                            />
+                            Inquiry
+                          </Link>
+                          <Link
+                            href="/employee/walk-in"
+                            className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                              isActive("/employee/walk-in")
+                                ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                                : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                            }`}
+                          >
+                            <ListOrdered
+                              className={`h-4 w-4 ${
+                                isActive("/employee/walk-in")
+                                  ? "text-[#f8610e]"
+                                  : "text-white/90"
+                              }`}
+                            />
+                            Order
+                          </Link>
+                          <Link
+                            href="/employee/sales"
+                            className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                              isActive("/employee/sales")
+                                ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                                : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                            }`}
+                          >
+                            <FileText
+                              className={`h-4 w-4 ${
+                                isActive("/employee/sales")
+                                  ? "text-[#f8610e]"
+                                  : "text-white/90"
+                              }`}
+                            />
+                            Sales
+                          </Link>
+                          <Link
+                            href="/employee/inventory"
+                            className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                              isActive("/employee/inventory")
+                                ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                                : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                            }`}
+                          >
+                            <Package
+                              className={`h-4 w-4 ${
+                                isActive("/employee/inventory")
+                                  ? "text-[#f8610e]"
+                                  : "text-white/90"
+                              }`}
+                            />
+                            Inventory
+                          </Link>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                  **/}
+
+                  {/* Inquiry (kept visible) */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                  >
+                    <Link
+                      href="/employee/inquiry"
+                      className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                        isActive("/employee/inquiry")
+                          ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
+                          : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
+                      }`}
+                    >
+                      <ListOrdered
+                        className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                          isActive("/employee/inquiry")
+                            ? "text-[#f8610e]"
+                            : "text-white"
+                        }`}
+                      />
+                      Inquiry
+                    </Link>
+                  </motion.div>
+
+                  {/* Products - with expandable children */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.4 }}
+                    className="space-y-1"
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`group flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200 ${
+                          expandedMenus["/products"]
+                            ? "bg-white/20 backdrop-blur-sm"
+                            : "hover:bg-white/20 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Package className="h-5 w-5" />
+                        Management
+                      </div>
+                      <motion.button
+                        onClick={() => toggleMenu("/products")}
+                        className="ml-2 rounded-lg p-2 text-white transition-all hover:bg-white/20 hover:backdrop-blur-sm"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <AnimatePresence mode="wait">
+                          {expandedMenus["/products"] ? (
+                            <motion.div
+                              key="up"
+                              initial={{ rotate: 180 }}
+                              animate={{ rotate: 0 }}
+                              exit={{ rotate: 180 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="down"
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: 0 }}
+                              exit={{ rotate: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.button>
+                    </div>
+                    <AnimatePresence>
+                      {expandedMenus["/products"] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="ml-6 space-y-1 overflow-hidden"
+                        >
+                          <Link
+                            href="/employee/product"
+                            className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                              isActive("/employee/product")
+                                ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                                : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                            }`}
+                          >
+                            <Package
+                              className={`h-4 w-4 ${
+                                isActive("/employee/product")
+                                  ? "text-[#f8610e]"
+                                  : "text-white/90"
+                              }`}
+                            />
+                            Product
+                          </Link>
+                          <Link
+                            href="/employee/category-product"
+                            className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                              isActive("/employee/category-product")
+                                ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                                : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                            }`}
+                          >
+                            <Package
+                              className={`h-4 w-4 ${
+                                isActive("/employee/category-product")
+                                  ? "text-[#f8610e]"
+                                  : "text-white/90"
+                              }`}
+                            />
+                            Product Category
+                          </Link>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+
+                  {/* Reports */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.5 }}
+                  >
+                    <Link
+                      href="/employee/reports"
+                      className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                        isActive("/employee/reports")
+                          ? "bg-white/90 text-[#f8610e] shadow-lg backdrop-blur-sm"
+                          : "text-white hover:bg-white/20 hover:shadow-md hover:backdrop-blur-sm"
+                      }`}
+                    >
+                      <FileText
+                        className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                          isActive("/employee/reports")
+                            ? "text-[#f8610e]"
+                            : "text-white"
+                        }`}
+                      />
+                      Reports
+                    </Link>
+                  </motion.div>
+                </>
+              )}
             </nav>
           </div>
+
+          {/* QR Code Dialog */}
+          <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
+            <DialogContent className="sm:max-w-[360px]">
+              <DialogHeader>
+                <DialogTitle>My QR Code</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-3 py-2">
+                {user?.userId ? (
+                  <>
+                    <QRCodeCanvas id="employee-qr-canvas" value={String(user.userId)} size={220} includeMargin={true} />
+                    <div className="text-sm text-gray-600">Employee ID: {user.userId}</div>
+                    <Button onClick={handleDownloadQr} className="mt-2 bg-[#f8610e] hover:bg-[#f8610e]/90">Download QR (PNG)</Button>
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-500">No employee ID</div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Bottom Decorative Element */}
           <div className="mt-auto p-4">

@@ -1,7 +1,5 @@
-// ~/app/admin/inquiry/page.tsx  (or wherever your Orders page lives)
 "use client";
 import { useState } from "react";
-import { type NextPage } from "next";
 import Head from "next/head";
 import { Eye, Plus, Search, Trash2, Check, X } from "lucide-react";
 import { api } from "~/trpc/react";
@@ -31,14 +29,13 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Badge } from "~/components/ui/badge";
 
-const Order: NextPage = () => {
+const Order = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  const [selectedOrder, setSelectedOrder] = useState<{
+  type OrderItem = {
     id: number;
     firstname: string;
     lastname: string;
@@ -47,9 +44,8 @@ const Order: NextPage = () => {
     subject?: string | null;
     message: string;
     status: boolean;
-    createdAt?: Date;
-  } | null>(null);
-
+  };
+  const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
   const formSchema = z.object({
     firstname: z.string().min(1, "First name is required"),
     lastname: z.string().min(1, "Last name is required"),
@@ -69,6 +65,7 @@ const Order: NextPage = () => {
     handleSubmit,
     reset,
     formState: { errors },
+    setValue,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
@@ -87,6 +84,13 @@ const Order: NextPage = () => {
     },
   });
 
+  const updateOrder = api.orders.update.useMutation({
+    onSuccess: () => {
+      void refetch();
+      setIsEditModalOpen(false);
+    },
+  });
+
   const deleteOrder = api.orders.delete.useMutation({
     onSuccess: () => {
       void refetch();
@@ -101,14 +105,36 @@ const Order: NextPage = () => {
   });
 
   const handleCreate = (data: FormData) => {
+    const firstname = data.firstname?.trim();
+    const lastname = data.lastname?.trim();
+    const phone = data.phone?.trim();
+    const message = data.message?.trim();
+    if (!firstname || !lastname || !message || !phone || phone.length !== 11) {
+      console.warn("orders.create blocked: invalid form payload", { firstname, lastname, phone, message });
+      return;
+    }
     createOrder.mutate({
-      firstname: data.firstname,
-      lastname: data.lastname,
-      email: data.email || undefined,
-      phone: data.phone,
-      subject: data.subject || undefined,
-      message: data.message,
+      firstname,
+      lastname,
+      email: data.email?.trim() || undefined,
+      phone,
+      subject: data.subject?.trim() || undefined,
+      message,
     });
+  };
+
+  const handleUpdate = (data: FormData) => {
+    if (selectedOrder) {
+      updateOrder.mutate({
+        id: selectedOrder.id,
+        firstname: data.firstname,
+        lastname: data.lastname,
+        email: data.email || undefined,
+        phone: data.phone,
+        subject: data.subject || undefined,
+        message: data.message,
+      });
+    }
   };
 
   const handleDelete = () => {
@@ -118,21 +144,28 @@ const Order: NextPage = () => {
   };
 
   const handleToggleStatus = (id: number, currentStatus: boolean) => {
+    console.log("current status",currentStatus)
     toggleStatus.mutate({ id, status: !currentStatus });
   };
 
-  const openViewModal = (order: typeof selectedOrder) => {
+  const openEditModal = (order: typeof selectedOrder) => {
     if (order) {
       setSelectedOrder(order);
-      setIsViewModalOpen(true);
+      setValue("firstname", order.firstname);
+      setValue("lastname", order.lastname);
+      setValue("email", order.email || "");
+      setValue("phone", order.phone);
+      setValue("subject", order.subject || "");
+      setValue("message", order.message);
+      setIsEditModalOpen(true);
     }
   };
 
   return (
     <>
       <Head>
-        <title>Orders / Inquiries</title>
-        <meta name="description" content="View customer inquiries (orders)" />
+        <title>Inquiries Management</title>
+        <meta name="description" content="Manage customer inquiry" />
       </Head>
 
       <div className="space-y-6">
@@ -140,23 +173,25 @@ const Order: NextPage = () => {
           <h1 className="text-2xl font-bold text-[#f8610e] md:text-3xl">
             Inquiries
           </h1>
-          {/* <Button
+          {/* Hidden per request: Add Order button */}
+          {/**
+          <Button
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-[#f8610e] hover:bg-[#f8610e]/90"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Inquiry
-          </Button> */}
+            Add Order
+          </Button>
+          **/}
         </div>
 
-       <div className="relative w-64">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          aria-label="Search inquiries"
-          placeholder="Search inquiries..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-8 pl-10 text-sm"
+        <div className="relative">
+          <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+          <Input
+            placeholder="Search inquiries..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
           />
         </div>
 
@@ -175,22 +210,22 @@ const Order: NextPage = () => {
             </TableHeader>
             <TableBody>
               {ordersData?.orders.length ? (
-                ordersData.orders.map((order) => (
+                ordersData.orders.map((order: OrderItem) => (
                   <TableRow key={order.id}>
                     <TableCell>{order.id}</TableCell>
                     <TableCell>
                       {order.firstname} {order.lastname}
                     </TableCell>
-                    <TableCell>{order.email ?? "—"}</TableCell>
+                    <TableCell>{order.email}</TableCell>
                     <TableCell>{order.phone}</TableCell>
-                    <TableCell>{order.subject ?? "—"}</TableCell>
+                    <TableCell>{order.subject}</TableCell>
                     <TableCell>
                       <Badge
                         variant={order.status ? "default" : "secondary"}
                         className={
                           order.status
                             ? "bg-green-500 hover:bg-green-600"
-                            : "bg-red-500 text-white hover:bg-gray-600"
+                            : "bg-red-500 hover:bg-gray-600 text-white"
                         }
                       >
                         {order.status ? "Actioned" : "Pending"}
@@ -200,15 +235,12 @@ const Order: NextPage = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          handleToggleStatus(order.id, order.status)
-                        }
+                        onClick={() => handleToggleStatus(order.id, order.status)}
                         className={
                           order.status
                             ? "hover:bg-gray-100"
                             : "hover:bg-green-100"
                         }
-                        title={order.status ? "Mark as Pending" : "Mark as Actioned"}
                       >
                         {order.status ? (
                           <X className="h-4 w-4 text-gray-600" />
@@ -216,17 +248,13 @@ const Order: NextPage = () => {
                           <Check className="h-4 w-4 text-green-600" />
                         )}
                       </Button>
-
-                      {/* View-only modal trigger */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openViewModal(order)}
-                        title="View"
+                        onClick={() => openEditModal(order)}
                       >
                         <Eye className="h-4 w-4 text-blue-600" />
                       </Button>
-
                       <Button
                         variant="ghost"
                         size="sm"
@@ -235,7 +263,6 @@ const Order: NextPage = () => {
                           setIsDeleteModalOpen(true);
                         }}
                         className="hover:bg-red-100"
-                        title="Delete"
                       >
                         <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>
@@ -284,11 +311,11 @@ const Order: NextPage = () => {
         )}
       </div>
 
-      {/* Create Inquiry Modal */}
+      {/* Create Order Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">Add New Inquiry</DialogTitle>
+            <DialogTitle className="text-[#f8610e]">Add New inquiry</DialogTitle>
             <DialogDescription>Create a new customer inquiry</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(handleCreate)} className="space-y-4">
@@ -352,7 +379,11 @@ const Order: NextPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="subject">Subject</Label>
-              <Input id="subject" {...register("subject")} placeholder="Subject" />
+              <Input
+                id="subject"
+                {...register("subject")}
+                placeholder="Enter subject"
+              />
             </div>
 
             <div className="space-y-2">
@@ -372,7 +403,10 @@ const Order: NextPage = () => {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateModalOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
@@ -380,88 +414,122 @@ const Order: NextPage = () => {
                 disabled={createOrder.isPending}
                 className="bg-[#f8610e] hover:bg-[#f8610e]/90"
               >
-                {createOrder.isPending ? "Saving..." : "Save Inquiry"}
+                {createOrder.isPending ? "Saving..." : "Save Order"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* View Inquiry Modal (read-only) */}
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+      {/* View Order Modal (was Edit) */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">View Inquiry</DialogTitle>
-            <DialogDescription>Read-only details</DialogDescription>
+            <DialogTitle className="text-[#f8610e]">View inquiry</DialogTitle>
+            <DialogDescription>View customer inquiry details</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4">
+          <form className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>First Name</Label>
-                <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                  {selectedOrder?.firstname ?? "—"}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-firstname">First Name</Label>
+                <Input
+                  id="edit-firstname"
+                  {...register("firstname")}
+                  readOnly
+                  disabled
+                  className={errors.firstname ? "border-red-500" : ""}
+                  placeholder="Enter first name"
+                />
+                {errors.firstname && (
+                  <p className="text-sm text-red-500">
+                    {errors.firstname.message}
+                  </p>
+                )}
               </div>
-              <div>
-                <Label>Last Name</Label>
-                <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                  {selectedOrder?.lastname ?? "—"}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-lastname">Last Name</Label>
+                <Input
+                  id="edit-lastname"
+                  {...register("lastname")}
+                  readOnly
+                  disabled
+                  className={errors.lastname ? "border-red-500" : ""}
+                  placeholder="Enter last name"
+                />
+                {errors.lastname && (
+                  <p className="text-sm text-red-500">
+                    {errors.lastname.message}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Email</Label>
-                <div className="mt-1 truncate rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                  {selectedOrder?.email ?? "—"}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  {...register("email")}
+                  readOnly
+                  disabled
+                  placeholder="Enter email"
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
               </div>
-              <div>
-                <Label>Phone</Label>
-                <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                  {selectedOrder?.phone ?? "—"}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  {...register("phone")}
+                  readOnly
+                  disabled
+                  className={errors.phone ? "border-red-500" : ""}
+                  placeholder="Enter phone number"
+                />
+                {errors.phone && (
+                  <p className="text-sm text-red-500">{errors.phone.message}</p>
+                )}
               </div>
             </div>
 
-            <div>
-              <Label>Subject</Label>
-              <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                {selectedOrder?.subject ?? "—"}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-subject">Subject</Label>
+                <Input
+                  id="edit-subject"
+                  {...register("subject")}
+                  readOnly
+                  disabled
+                  placeholder="Enter subject"
+                />
             </div>
 
-            <div>
-              <Label>Message</Label>
-              <div className="mt-1 whitespace-pre-wrap rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                {selectedOrder?.message ?? "—"}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                ID: {selectedOrder?.id ?? "—"}
-              </div>
-              <Badge
-                variant={selectedOrder?.status ? "default" : "secondary"}
-                className={
-                  selectedOrder?.status
-                    ? "bg-green-500"
-                    : "bg-red-500 text-white"
-                }
-              >
-                {selectedOrder?.status ? "Actioned" : "Pending"}
-              </Badge>
+            <div className="space-y-2">
+              <Label htmlFor="edit-message">Message</Label>
+              <textarea
+                id="edit-message"
+                rows={4}
+                {...register("message")}
+                readOnly
+                disabled
+                className={`w-full rounded-md border px-3 py-2 text-sm ${
+                  errors.message ? "border-red-500" : ""
+                }`}
+                placeholder="Enter message"
+              />
+              {errors.message && (
+                <p className="text-sm text-red-500">{errors.message.message}</p>
+              )}
             </div>
 
             <DialogFooter>
-              <Button onClick={() => setIsViewModalOpen(false)} className="bg-[#f8610e] hover:bg-[#f8610e]/90">
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
                 Close
               </Button>
             </DialogFooter>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -469,13 +537,17 @@ const Order: NextPage = () => {
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete Inquiry</DialogTitle>
+            <DialogTitle className="text-red-600">Delete inquiry</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this inquiry? This action cannot be undone.
+              Are you sure you want to delete this inquiry? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -491,5 +563,4 @@ const Order: NextPage = () => {
     </>
   );
 };
-
 export default Order;

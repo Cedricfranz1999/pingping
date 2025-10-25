@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { Search, Star, Trash2 } from "lucide-react";
+import { Search, Star, Trash2, Eye } from "lucide-react";
 import { api } from "~/trpc/react";
 
 // shadcn/ui imports
@@ -39,9 +39,19 @@ const FeedbackPage: NextPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState<{
     id: number;
     name: string;
+  } | null>(null);
+  const [viewFeedback, setViewFeedback] = useState<{
+    name: string;
+    email: string;
+    address: string;
+    contact: string;
+    star: number;
+    feedback: string;
+    createdAt: Date;
   } | null>(null);
 
   const { data: feedbackData, refetch } = api.feedback.getAll.useQuery({
@@ -181,6 +191,25 @@ const FeedbackPage: NextPage = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        setViewFeedback({
+                          name: feedback.name,
+                          email: feedback.email,
+                          address: feedback.address,
+                          contact: feedback.contact,
+                          star: feedback.star,
+                          feedback: feedback.feedback,
+                          createdAt: feedback.createdAt,
+                        });
+                        setIsViewModalOpen(true);
+                      }}
+                      className="hover:bg-gray-100"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
                         setSelectedFeedback({
                           id: feedback.id,
                           name: feedback.name,
@@ -224,6 +253,51 @@ const FeedbackPage: NextPage = () => {
           </div>
         )}
       </div>
+
+      {/* View Feedback Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#f8610e]">Feedback Details</DialogTitle>
+            <DialogDescription>Submitted user feedback</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <span className="text-sm font-semibold">Name: </span>
+              <span className="text-sm">{viewFeedback?.name}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Email: </span>
+              <span className="text-sm">{viewFeedback?.email}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Contact: </span>
+              <span className="text-sm">{viewFeedback?.contact}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Address: </span>
+              <span className="text-sm">{viewFeedback?.address}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">Rating:</span>
+              {viewFeedback?.star !== undefined && renderStars(viewFeedback.star)}
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Date: </span>
+              <span className="text-sm">{viewFeedback?.createdAt.toLocaleDateString()}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Feedback:</span>
+              <p className="mt-1 whitespace-pre-wrap text-sm">{viewFeedback?.feedback}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-[425px]">

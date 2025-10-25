@@ -1,7 +1,7 @@
 // ~/app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, type SetStateAction } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, User, Lock, ArrowRight } from "lucide-react";
 import Image from "next/image";
@@ -23,22 +23,20 @@ export default function LoginPage() {
   const { login } = useAuthStore(); // Get the login function from Zustand store
 
   const loginMutation = api.auth.login.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: { userId: number; username: string; role: string }) => {
       // Use Zustand store instead of localStorage
       login({
         userId: data.userId,
         username: data.username,
-        role: "admin",
-     
+        role: data.role === "employee" ? "employee" : "admin",
       });
-      
       if (data.role === "admin") {
         router.push("/admin/dashboard");
       } else if (data.role === "employee") {
         router.push("/employee/dashboard");
       }
     },
-    onError: (error) => {
+    onError: (error: { message: SetStateAction<string> }) => {
       setError(error.message);
     },
   });
@@ -132,7 +130,7 @@ export default function LoginPage() {
               {/* Username Field */}
               <div className="space-y-2">
                 <label
-                  htmlFor="username"
+                  htmlFor=" username"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Username
@@ -211,7 +209,7 @@ export default function LoginPage() {
               </Button>
             </motion.form>
 
-            {/* Footer */}
+            {/* Footer
             <motion.div variants={fadeInUp} className="mt-8 text-center">
               <p className="text-sm text-gray-600">
                 Dont have an account?{" "}
@@ -222,7 +220,7 @@ export default function LoginPage() {
                   Contact Administrator
                 </a>
               </p>
-            </motion.div>
+            </motion.div> */}
 
             {/* Decorative Elements */}
             <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[#f8610e]/10 blur-xl" />

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type JSXElementConstructor, type Key, type ReactElement, type ReactNode, type ReactPortal } from "react";
 import { useToast } from "~/components/ui/use-toast";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -110,7 +110,7 @@ const ProductReportsPage = () => {
         categoryId: categoryFilter,
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: { csv: string; }) => {
           downloadCSV(data.csv, `products-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
           toast({ title: "Export Successful", description: "Products data has been exported to CSV" });
         },
@@ -129,7 +129,7 @@ const ProductReportsPage = () => {
         action: actionFilter,
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: { csv: string; }) => {
           downloadCSV(data.csv, `activity-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
           toast({ title: "Export Successful", description: "Activity data has been exported to CSV" });
         },
@@ -349,7 +349,7 @@ const ProductReportsPage = () => {
                         label={({ name, percent }) => `${name}: ${((percent as any) * 100).toFixed(0)}%`}
                         className="text-sm font-medium"
                       >
-                        {chartData?.categoryChart.map((entry, index) => (
+                        {chartData?.categoryChart.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} className="drop-shadow-sm" />
                         ))}
                       </Pie>
@@ -387,7 +387,7 @@ const ProductReportsPage = () => {
 
               <Select
                 value={categoryFilter?.toString() ?? ""}
-                onValueChange={(value) => setCategoryFilter(value ? parseInt(value) : undefined)}
+                onValueChange={(value: string) => setCategoryFilter(value ? parseInt(value) : undefined)}
                 disabled={categoriesLoading}
               >
                 <SelectTrigger className="w-[180px] rounded-xl border-gray-200 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20">
@@ -395,8 +395,8 @@ const ProductReportsPage = () => {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
                   <SelectItem value="all-categories">All Categories</SelectItem>
-                  {categories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
+                  {categories?.map((category: { id: { toString: () => any } | string | number; name: any }) => (
+                    <SelectItem key={category.id.toString()} value={category.id.toString()}>
                       {category.name}
                     </SelectItem>
                   ))}
@@ -478,7 +478,7 @@ const ProductReportsPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {productsData?.data.map((product, index) => (
+                    {productsData?.data.map((product: { id: Key | null | undefined; name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; description: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; categories: any[]; stock: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; price: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }, index: number) => (
                       <TableRow
                         key={product.id}
                         className={`border-b border-gray-50 transition-colors hover:bg-orange-50/50 ${
@@ -504,7 +504,7 @@ const ProductReportsPage = () => {
                             ))}
                           </div>
                         </TableCell>
-                        <TableCell className="p-4">
+                        {/* <TableCell className="p-4">
                           <span
                             className={`text-lg font-bold ${
                               product.stock === 0
@@ -516,7 +516,7 @@ const ProductReportsPage = () => {
                           >
                             {product.stock}
                           </span>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="p-4">
                           <span className="text-lg font-bold text-gray-900">{product.price}</span>
                         </TableCell>
@@ -574,7 +574,7 @@ const ProductReportsPage = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {activityData?.map((log) => (
+                {activityData?.map((log: { id: Key | null | undefined; action: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; employee: { firstname: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; lastname: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }; product: { name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }; timestamp: string | number | Date; oldStock: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; newStock: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; oldPrice: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; newPrice: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }) => (
                   <div
                     key={log.id}
                     className="flex items-start justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:shadow-md"

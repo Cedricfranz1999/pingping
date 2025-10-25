@@ -128,7 +128,7 @@ model ProductLog {
   newStock   Int?
   newPrice   String?
   timestamp  DateTime      @default(now())
-  employee   Employee      @relation(fields: [employeeId], references: [id])
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   product    Product       @relation(fields: [productId], references: [id])
 
   @@index([productId])
@@ -156,7 +156,7 @@ model Attendance {
   status     AttendanceStatus?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  employee   Employee          @relation(fields: [employeeId], references: [id])
+  employee   Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([employeeId, date])
 }
@@ -201,6 +201,8 @@ model Order {
   status    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("orders")
 }
 
 enum AttendanceStatus {

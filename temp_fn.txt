@@ -1,0 +1,3 @@
+const handleDelete = (id: number) => {
+    deleteMutation.mutate({ id });
+  };

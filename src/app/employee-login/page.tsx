@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type SetStateAction } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, User, Lock, ArrowRight } from "lucide-react";
 import Image from "next/image";
@@ -22,7 +22,7 @@ export default function LoginPage() {
   const login = useAuthStore((state) => state.login);
 
   const loginMutation = api.auth.employeeLogin.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: { userId: any; username: any; firstName: any; lastName: any; canModify: any; }) => {
       // Store user information in Zustand store
       login({
         userId: data.userId,
@@ -36,7 +36,7 @@ export default function LoginPage() {
       // Redirect based on role
       router.push("/employee/record-attendance");
     },
-    onError: (error) => {
+    onError: (error: { message: SetStateAction<string>; }) => {
       setError(error.message);
     },
   });

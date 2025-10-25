@@ -2,23 +2,28 @@ import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import { subDays } from "date-fns";
+
+const coerceEmptyToUndefined = (v: unknown) =>
+  typeof v === "string" && v.trim() === "" ? undefined : v;
+
+const digitsOnly = (v: unknown) =>
+  typeof v === "string" ? v.replace(/\D+/g, "") : v;
+
+const orderBodySchema = z.object({
+  firstname: z.string().trim().min(1),
+  lastname: z.string().trim().min(1),
+  email: z.preprocess(coerceEmptyToUndefined, z.string().email().optional()),
+  phone: z.preprocess(digitsOnly, z.string().length(11, "Phone must be 11 digits")),
+  subject: z.preprocess(coerceEmptyToUndefined, z.string().trim().optional()),
+  message: z.string().trim().min(1),
+});
 
 export const ordersRouter = createTRPCRouter({
-  // Create new order (acts as "inquiry" from your site form)
+  // Create new order
   create: publicProcedure
-    .input(
-      z.object({
-        firstname: z.string().min(1),
-        lastname: z.string().min(1),
-        email: z.string().email().optional(),
-        phone: z.string().min(11).max(11),
-        subject: z.string().optional(),
-        message: z.string().min(1),
-      }),
-    )
+    .input(orderBodySchema)
     .mutation(async ({ input }) => {
-      return db.order.create({
+      return await db.order.create({
         data: {
           firstname: input.firstname,
           lastname: input.lastname,
@@ -30,27 +35,29 @@ export const ordersRouter = createTRPCRouter({
       });
     }),
 
-  // Get all orders with search + pagination (admin Orders page)
+  // Get all orders with search and pagination
   getAll: publicProcedure
     .input(
-      z.object({
-        search: z.string().optional(),
-        page: z.number().min(1).default(1),
-        limit: z.number().min(1).max(100).default(10),
-      }),
+      z
+        .object({
+          search: z.preprocess(coerceEmptyToUndefined, z.string().optional()),
+          page: z.number().min(1).default(1),
+          limit: z.number().min(1).max(100).default(10),
+        })
+        .optional(),
     )
     .query(async ({ input }) => {
-      const { search, page, limit } = input;
+      const search = input?.search;
+      const page = input?.page ?? 1;
+      const limit = input?.limit ?? 10;
 
       const where: Prisma.OrderWhereInput = search
         ? {
             OR: [
               { firstname: { contains: search, mode: "insensitive" } },
-              { lastname:  { contains: search, mode: "insensitive" } },
-              { email:     { contains: search, mode: "insensitive" } },
-              { subject:   { contains: search, mode: "insensitive" } },
-              { phone:     { contains: search, mode: "insensitive" } },
-              { message:   { contains: search, mode: "insensitive" } },
+              { lastname: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+              { subject: { contains: search, mode: "insensitive" } },
             ],
           }
         : {};
@@ -60,7 +67,7 @@ export const ordersRouter = createTRPCRouter({
           where,
           skip: (page - 1) * limit,
           take: limit,
-          orderBy: { createdAt: "desc" },
+          orderBy: { id: "desc" },
         }),
         db.order.count({ where }),
       ]);
@@ -72,67 +79,46 @@ export const ordersRouter = createTRPCRouter({
       };
     }),
 
-  // 🔸 Dashboard "Recent Inquiries" (reads from Orders; last 7 days, top 5, plus total)
-  getDashboardInquiries: publicProcedure.query(async () => {
-    const since = subDays(new Date(), 7);
-
-    const where: Prisma.OrderWhereInput = {
-      createdAt: { gte: since },
-    };
-
-    const [data, total] = await db.$transaction([
-      db.order.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      db.order.count({ where }),
-    ]);
-
-    return { data, total };
-  }),
-
   // Get single order by ID
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      return db.order.findUnique({ where: { id: input.id } });
+      return await db.order.findUnique({
+        where: { id: input.id },
+      });
     }),
 
   // Update order
   update: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        firstname: z.string().min(1),
-        lastname: z.string().min(1),
-        email: z.string().email().optional(),
-        phone: z.string().min(11).max(11),
-        subject: z.string().optional(),
-        message: z.string().min(1),
-      }),
-    )
+    .input(orderBodySchema.extend({ id: z.number() }))
     .mutation(async ({ input }) => {
-      return db.order.update({
+      return await db.order.update({
         where: { id: input.id },
         data: {
           firstname: input.firstname,
           lastname: input.lastname,
           email: input.email,
-          phone: input.phone,
           subject: input.subject,
           message: input.message,
+          phone: input.phone,
         },
       });
     }),
 
   // Toggle order status
   toggleStatus: publicProcedure
-    .input(z.object({ id: z.number(), status: z.boolean() }))
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.boolean(),
+      }),
+    )
     .mutation(async ({ input }) => {
-      return db.order.update({
+      return await db.order.update({
         where: { id: input.id },
-        data: { status: input.status },
+        data: {
+          status: input.status,
+        },
       });
     }),
 
@@ -140,6 +126,8 @@ export const ordersRouter = createTRPCRouter({
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      return db.order.delete({ where: { id: input.id } });
+      return await db.order.delete({
+        where: { id: input.id },
+      });
     }),
 });

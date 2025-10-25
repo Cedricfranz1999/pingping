@@ -29,6 +29,14 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Badge } from "~/components/ui/badge";
+// Safely stringify values for display without triggering base-to-string on objects
+const toText = (v: unknown): string => {
+  const t = typeof v;
+  if (t === "string" || t === "number" || t === "boolean" || t === "bigint") {
+    return String(v);
+  }
+  return "";
+};
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Switch } from "~/components/ui/switch";
 import {
@@ -103,7 +111,7 @@ const EmployeePage = () => {
       setIsCreateDialogOpen(false);
       resetForm();
     },
-    onError: (error) => {
+    onError: (error: { message: any; }) => {
       toast({
         title: "Error",
         description: error.message,
@@ -123,7 +131,7 @@ const EmployeePage = () => {
       setIsEditDialogOpen(false);
       resetForm();
     },
-    onError: (error) => {
+    onError: (error: { message: any; }) => {
       toast({
         title: "Error",
         description: error.message,
@@ -141,7 +149,7 @@ const EmployeePage = () => {
       });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: { message: any; }) => {
       toast({
         title: "Error",
         description: error.message,
@@ -159,7 +167,7 @@ const EmployeePage = () => {
       });
       refetch();
     },
-    onError: (error) => {
+    onError: (error: { message: any; }) => {
       toast({
         title: "Error",
         description: error.message,
@@ -168,23 +176,23 @@ const EmployeePage = () => {
     },
   });
 
-  // const toggleModifyMutation = api.employee.toggleModify.useMutation({
-  //   onSuccess: () => {
-  //     toast({
-  //       title: "Success!",
-  //       description: "Employee permissions updated",
-  //       variant: "default",
-  //     });
-  //     refetch();
-  //   },
-  //   onError: (error) => {
-  //     toast({
-  //       title: "Error",
-  //       description: error.message,
-  //       variant: "destructive",
-  //     });
-  //   },
-  // });
+  const toggleModifyMutation = api.employee.toggleModify.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "Employee permissions updated",
+        variant: "default",
+      });
+      refetch();
+    },
+    onError: (error: { message: any; }) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const [formData, setFormData] = useState<{
     image: string;
@@ -268,6 +276,8 @@ const EmployeePage = () => {
       ...formData,
       image: formData.image || undefined,
       middlename: formData.middlename || undefined,
+      // Force new employees to be active as requested
+      isactive: true,
     };
 
     if (editingEmployee) {
@@ -294,22 +304,29 @@ const EmployeePage = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate({ id });
+  const handleDelete = (id?: unknown) => {
+    const numId = typeof id === "number" ? id : typeof id === "string" ? Number(id) : NaN;
+    if (Number.isNaN(numId)) {
+      toast({ title: "Error", description: "Invalid employee id", variant: "destructive" });
+      return;
+    }
+    // Debug log to verify payload at runtime
+    console.log("employee.delete payload", { id: numId });
+    deleteMutation.mutate({ id: numId });
   };
 
   const handleToggleActive = (id: number, isactive: boolean) => {
     toggleActiveMutation.mutate({ id, isactive: !isactive });
   };
 
-  // const handleToggleModify = (id: number, canModify: boolean) => {
-  //   toggleModifyMutation.mutate({ id, canModify: !canModify });
-  // };
+  const handleToggleModify = (id: number, canModify: boolean) => {
+    toggleModifyMutation.mutate({ id, canModify: !canModify });
+  };
 
   const employees = employeeData?.employees || [];
   const totalEmployees = employeeData?.total || 0;
-  const activeEmployees = employees.filter((emp) => emp.isactive).length;
-  const modifyEmployees = employees.filter((emp) => emp.canModify).length;
+  const activeEmployees = employees.filter((emp: { isactive: any; }) => emp.isactive).length;
+  const modifyEmployees = employees.filter((emp: { canModify: any; }) => emp.canModify).length;
 
   const ImagePreview = ({
     imageData,
@@ -577,28 +594,7 @@ const EmployeePage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="isactive"
-                          checked={formData.isactive}
-                          onCheckedChange={(checked: boolean) =>
-                            setFormData({ ...formData, isactive: checked })
-                          }
-                        />
-                        <Label htmlFor="isactive">Active</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="canModify"
-                          checked={formData.canModify}
-                          onCheckedChange={(checked: boolean) =>
-                            setFormData({ ...formData, canModify: checked })
-                          }
-                        />
-                        <Label htmlFor="canModify">Can Modify</Label>
-                      </div>
-                    </div>
+                    {/* Hidden: Active/Can Modify switches per request */}
                     <div className="flex justify-end gap-2">
                       <Button
                         type="button"
@@ -654,19 +650,18 @@ const EmployeePage = () => {
                   <TableHead>Address</TableHead>
                   <TableHead>Gender</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Permissions</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((employee) => (
+                {employees.map((employee: { id: React.Key | null | undefined; image: any; firstname: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; lastname: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; middlename: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; username: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; address: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; gender: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; }) => (
                   <TableRow key={employee.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {employee.image && (
                           <Image
                             src={employee.image || "/placeholder.svg"}
-                            alt={`${employee.firstname} ${employee.lastname}`}
+                            alt={`${toText(employee.firstname)} ${toText(employee.lastname)}`}
                             width={32}
                             height={32}
                             className="rounded-full object-cover"
@@ -675,8 +670,7 @@ const EmployeePage = () => {
                         )}
                         <div>
                           <div className="font-medium">
-                            {employee.firstname} {employee.middlename}{" "}
-                            {employee.lastname}
+                            {toText(employee.firstname)} {toText(employee.middlename)} {toText(employee.lastname)}
                           </div>
                         </div>
                       </div>
@@ -685,29 +679,28 @@ const EmployeePage = () => {
                     <TableCell>{employee.address}</TableCell>
                     <TableCell>{employee.gender}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={employee.isactive ? "default" : "secondary"}
-                        className={
-                          employee.isactive
-                            ? "bg-[#f8610e] hover:bg-[#f8610e]/90"
-                            : ""
-                        }
-                      >
-                        {employee.isactive ? "Active" : "Inactive"}
-                      </Badge>
+                      {/* Always show Active as requested */}
+                      <Badge className="bg-[#f8610e] hover:bg-[#f8610e]/90">Active</Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={employee.canModify ? "default" : "outline"}
-                        className={
-                          employee.canModify
-                            ? "bg-[#f8610e] hover:bg-[#f8610e]/90"
-                            : ""
-                        }
-                      >
-                        {employee.canModify ? "Can Modify" : "Read Only"}
-                      </Badge>
-                    </TableCell>
+                    {/*
+                      Original dynamic Status and Permissions (hidden per request):
+                      <TableCell>
+                        <Badge
+                          variant={employee.isactive ? "default" : "secondary"}
+                          className={employee.isactive ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
+                        >
+                          {employee.isactive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={employee.canModify ? "default" : "outline"}
+                          className={employee.canModify ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
+                        >
+                          {employee.canModify ? "Can Modify" : "Read Only"}
+                        </Badge>
+                      </TableCell>
+                    */}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -719,49 +712,52 @@ const EmployeePage = () => {
                           <Edit className="h-4 w-4" />
                           <span className="ml-1">Edit</span>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleToggleActive(
-                              employee.id,
-                              employee.isactive ?? true,
-                            )
-                          }
-                          className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
-                          disabled={toggleActiveMutation.isPending}
-                        >
-                          {toggleActiveMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : employee.isactive ? (
-                            <UserX className="h-4 w-4" />
-                          ) : (
-                            <UserCheck className="h-4 w-4" />
-                          )}
-                          {!toggleActiveMutation.isPending && (
-                            <span className="ml-1">
-                              {employee.isactive ? "Deactivate" : "Activate"}
-                            </span>
-                          )}
-                        </Button>
-                        {/* <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleToggleModify(employee.id, employee.canModify)
-                          }
-                          className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
-                          disabled={toggleModifyMutation.isPending}
-                        >
-                          {toggleModifyMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Settings className="h-4 w-4" />
-                          )}
-                          {!toggleModifyMutation.isPending && (
-                            <span className="ml-1">Permissions</span>
-                          )}
-                        </Button> */}
+                        {/*
+                          Hidden per request (Activate/Deactivate and Permissions):
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleToggleActive(
+                                employee.id,
+                                employee.isactive ?? true,
+                              )
+                            }
+                            className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
+                            disabled={toggleActiveMutation.isPending}
+                          >
+                            {toggleActiveMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : employee.isactive ? (
+                              <UserX className="h-4 w-4" />
+                            ) : (
+                              <UserCheck className="h-4 w-4" />
+                            )}
+                            {!toggleActiveMutation.isPending && (
+                              <span className="ml-1">
+                                {employee.isactive ? "Deactivate" : "Activate"}
+                              </span>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleToggleModify(employee.id, employee.canModify)
+                            }
+                            className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
+                            disabled={toggleModifyMutation.isPending}
+                          >
+                            {toggleModifyMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Settings className="h-4 w-4" />
+                            )}
+                            {!toggleModifyMutation.isPending && (
+                              <span className="ml-1">Permissions</span>
+                            )}
+                          </Button>
+                        */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -787,7 +783,7 @@ const EmployeePage = () => {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => handleDelete(employee.id)}
+                                onClick={() => handleDelete(Number(employee.id))}
                                 className="bg-[#f8610e] hover:bg-[#f8610e]/90"
                                 disabled={deleteMutation.isPending}
                               >
@@ -931,28 +927,7 @@ const EmployeePage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-isactive"
-                  checked={formData.isactive}
-                  onCheckedChange={(checked: boolean) =>
-                    setFormData({ ...formData, isactive: checked })
-                  }
-                />
-                <Label htmlFor="edit-isactive">Active</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-canModify"
-                  checked={formData.canModify}
-                  onCheckedChange={(checked: boolean) =>
-                    setFormData({ ...formData, canModify: checked })
-                  }
-                />
-                <Label htmlFor="edit-canModify">Can Modify</Label>
-              </div>
-            </div>
+            {/* Hidden: Active/Can Modify switches in edit dialog per request */}
             <div className="flex justify-end gap-2">
               <Button
                 type="button"

@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { format, startOfDay } from "date-fns";
 import {
   Card,
   CardContent,
@@ -9,81 +7,59 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import {
-  MessageSquare,
-  ClipboardList,
-  Users,
-  Package,
-  Tag,
-  ArrowRight,
-  Star,
-  Loader2,
-} from "lucide-react";
+import { Users, Package, Tag, MessageSquare, ClipboardList, Inbox } from "lucide-react";
 import { api } from "~/trpc/react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
+import { format } from "date-fns";
 
 export default function DashboardPage() {
-  // Top KPI analytics
-  const { data: analytics, isLoading: analyticsLoading } =
-    api.dashbooard.getAnalytics.useQuery();
+  const { data: analytics, isLoading } = api.dashbooard.getAnalytics.useQuery();
+  // Additional data for dashboard widgets
+  // Compute start/end of today and filter client-side to avoid Date serialization issues
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  const { data: allAttendance } = api.attendanceRecord.getAll.useQuery({});
+  const todayAttendance = (allAttendance ?? []).filter((a: any) => {
+    const d = new Date(a.date);
+    return d >= todayStart && d < todayEnd;
+  });
+  const { data: recentFeedback } = api.feedback.getAll.useQuery({ page: 1, limit: 5, minStars: 6 });
+  const { data: recentInquiries } = api.orders.getAll.useQuery({ page: 1, limit: 5, search: "" });
 
-  // Recent inquiries (reads from Orders; last 7 days, top 5)
-  const { data: dashInquiries, isLoading: dashInquiriesLoading } =
-    api.orders.getDashboardInquiries.useQuery();
-
-  // Today’s attendance
-  const todayStart = startOfDay(new Date());
-  const { data: attendanceToday, isLoading: attendanceLoading } =
-    api.attendanceRecord.getAll.useQuery({ date: todayStart });
-
-  // Latest 5 feedback (list only)
-  const { data: feedbackData, isLoading: feedbackLoading } =
-    api.feedback.getAll.useQuery({ page: 1, limit: 5 });
-
-  // Overall feedback summary (average across ALL feedback rows)
-  const { data: feedbackSummary, isLoading: summaryLoading } =
-    api.feedback.getSummary.useQuery({}); // input optional; {} keeps TS happy
-
-  const inquiries = dashInquiries?.data ?? [];
-  const totalInquiries = dashInquiries?.total ?? 0;
-
-  const todayAttendance = attendanceToday ?? [];
-
-  // ---------- FIX: make "present" robust ----------
-  const isPresentNow = (r: any) => {
-    const s = String(r.status ?? "").trim().toLowerCase();
-    // If your backend sets a status, recognize common variants
-    if (s) {
-      if (["present", "on_duty", "checked_in"].includes(s)) return true;
-      if (["absent", "on_leave", "rest_day"].includes(s)) return false;
-    }
-    // Fallback: considered present if has timeIn and NO timeOut yet (still on-site)
-    const hasTimeIn = !!r.timeIn;
-    const hasTimeOut = !!r.timeOut;
-    return hasTimeIn && !hasTimeOut;
-  };
-
-  const presentCount = todayAttendance.filter(isPresentNow).length;
-  // -----------------------------------------------
-
-  const feedbacks = feedbackData?.feedbacks ?? [];
-  const overallAvg =
-    !summaryLoading && typeof feedbackSummary?.average === "number"
-      ? feedbackSummary.average.toFixed(1)
-      : "—";
-  const overallCount = feedbackSummary?.count ?? 0;
+  if (isLoading) {
+    return (
+      <div>
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold text-[#f8610e] md:text-2xl">
+            Dashboard
+          </h1>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="border-[#f8610e]/20">
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="mb-2 h-4 w-3/4 rounded bg-gray-200"></div>
+                  <div className="h-8 w-1/2 rounded bg-gray-200"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="mb-2 flex items-center">
+      <div className="flex items-center">
         <h1 className="text-lg font-semibold text-[#f8610e] md:text-2xl">
           Dashboard
         </h1>
       </div>
 
-      {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card className="border-[#f8610e]/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-[#f8610e]">
@@ -92,20 +68,12 @@ export default function DashboardPage() {
             <Package className="h-4 w-4 text-[#f8610e]" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-              </div>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-[#f8610e]">
-                  {analytics?.products.total ?? 0}
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  +{analytics?.products.today ?? 0} added today
-                </p>
-              </>
-            )}
+            <div className="text-2xl font-bold text-[#f8610e]">
+              {analytics?.products.total || 0}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              +{analytics?.products.today || 0} added today
+            </p>
           </CardContent>
         </Card>
 
@@ -117,20 +85,12 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-[#f8610e]" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-              </div>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-[#f8610e]">
-                  {analytics?.employees.total ?? 0}
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  +{analytics?.employees.newToday ?? 0} new today
-                </p>
-              </>
-            )}
+            <div className="text-2xl font-bold text-[#f8610e]">
+              {analytics?.employees.total || 0}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              +{analytics?.employees.newToday || 0} new today
+            </p>
           </CardContent>
         </Card>
 
@@ -142,246 +102,118 @@ export default function DashboardPage() {
             <Tag className="h-4 w-4 text-[#f8610e]" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-              </div>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-[#f8610e]">
-                  {analytics?.categories.total ?? 0}
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  +{analytics?.categories.newToday ?? 0} new today
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 2-column: Recent Inquiries + Today’s Attendance */}
-      <div className="mt-6 grid gap-4 md:grid-cols-2 md:gap-8">
-        {/* Recent Inquiries */}
-        <Card className="border-[#f8610e]/20">
-          <CardHeader className="flex items-start justify-between">
-            <div>
-              <Link
-                href="/admin/inquiry"
-                className="group inline-flex items-center"
-              >
-                <CardTitle className="text-[#f8610e] group-hover:underline">
-                  Recent Inquiries
-                </CardTitle>
-                <ArrowRight className="ml-2 h-4 w-4 opacity-0 transition group-hover:opacity-100" />
-              </Link>
-              <CardDescription>
-                Last 7 days • {totalInquiries} total
-              </CardDescription>
+            <div className="text-2xl font-bold text-[#f8610e]">
+              {analytics?.categories.total || 0}
             </div>
-            <Badge className="bg-[#f8610e] hover:bg-[#f8610e]/90">
-              <MessageSquare className="mr-1 h-3 w-3" />
-              {totalInquiries}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dashInquiriesLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading inquiries…
-              </div>
-            ) : (inquiries.length ? (
-              inquiries.map((inq: any) => (
-                <Link
-                  href="/admin/inquiry"
-                  key={inq.id}
-                  className="block rounded-lg border border-[#f8610e]/10 bg-white p-3 hover:bg-orange-50/40"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">
-                      {inq.firstname} {inq.lastname}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {format(new Date(inq.createdAt), "MMM dd, yyyy")}
-                    </div>
-                  </div>
-                  <div className="mt-1 line-clamp-1 text-sm text-gray-700">
-                    <span className="font-semibold">
-                      {inq.subject ?? "—"}:
-                    </span>{" "}
-                    {inq.message ?? "No message"}
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
-                No inquiries in the last 7 days.
-              </div>
-            ))}
-
-            <div className="pt-1">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/inquiry">
-                  View All Inquiries <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            <p className="text-muted-foreground text-xs">
+              +{analytics?.categories.newToday || 0} new today
+            </p>
           </CardContent>
         </Card>
 
-        {/* Today’s Attendance */}
         <Card className="border-[#f8610e]/20">
-          <CardHeader className="flex items-start justify-between">
-            <div>
-              <Link
-                href="/admin/record-attendance"
-                className="group inline-flex items-center"
-              >
-                <CardTitle className="text-[#f8610e] group-hover:underline">
-                  Today’s Attendance
-                </CardTitle>
-                <ArrowRight className="ml-2 h-4 w-4 opacity-0 transition group-hover:opacity-100" />
-              </Link>
-              <CardDescription>
-                {format(todayStart, "PPP")} • {todayAttendance.length} records
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className="border-green-300 text-green-700">
-              <ClipboardList className="mr-1 h-3 w-3" />
-              {presentCount} present
-            </Badge>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-[#f8610e]">
+              Today Overview
+            </CardTitle>
+            <ClipboardList className="h-4 w-4 text-[#f8610e]" />
           </CardHeader>
-          <CardContent className="space-y-3">
-            {attendanceLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading attendance…
-              </div>
-            ) : (todayAttendance.length ? (
-              todayAttendance.slice(0, 5).map((row: any) => (
-                <Link
-                  href="/admin/record-attendance"
-                  key={row.id}
-                  className="flex items-center justify-between rounded-lg border border-[#f8610e]/10 bg-white p-3 hover:bg-orange-50/40"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-gray-900">
-                      {row.employee?.firstname} {row.employee?.lastname}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {row.status ?? "—"}
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-gray-600">
-                    <div>
-                      In:{" "}
-                      {row.timeIn
-                        ? format(new Date(row.timeIn), "hh:mm a")
-                        : "—"}
-                    </div>
-                    <div>
-                      Out:{" "}
-                      {row.timeOut
-                        ? format(new Date(row.timeOut), "hh:mm a")
-                        : "—"}
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
-                No attendance recorded today.
-              </div>
-            ))}
-
-            <div className="pt-1">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/record-attendance">
-                  Go to Attendance <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+          <CardContent className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Attendance records</span>
+              <span className="font-semibold text-[#f8610e]">{todayAttendance.length}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Recent feedback</span>
+              <span className="font-semibold text-[#f8610e]">{recentFeedback?.pagination?.total ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Recent inquiries</span>
+              <span className="font-semibold text-[#f8610e]">{recentInquiries?.total ?? 0}</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Latest Feedback */}
-      <div className="mt-6">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border-[#f8610e]/20">
-          <CardHeader className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-[#f8610e]">Latest Feedback</CardTitle>
-              <CardDescription>
-                Most recent 5 • Avg rating (all):{" "}
-                {summaryLoading ? (
-                  <span className="inline-flex items-center gap-2 text-gray-500">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Loading…</span>
-                  </span>
-                ) : (
-                  <span className="font-semibold">
-                    {overallAvg}
-                    {overallCount > 0 ? ` (${overallCount})` : ""}
-                  </span>
-                )}
-              </CardDescription>
-            </div>
-            <div className="flex items-center text-[#f8610e]">
-              <Star className="mr-1 h-4 w-4 fill-current" />
-              <span className="text-sm font-semibold">{overallAvg}</span>
-            </div>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[#f8610e]"><MessageSquare className="h-4 w-4"/>Recent Feedback</CardTitle>
+            <CardDescription>Latest user feedback</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {feedbackLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading feedback…
-              </div>
-            ) : (feedbacks.length ? (
-              feedbacks.map((fb: any) => (
-                <div
-                  key={fb.id}
-                  className="rounded-lg border border-[#f8610e]/10 bg-white p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 pr-2">
-                      <div className="truncate text-sm font-medium text-gray-900">
-                        {fb.name ?? "Anonymous"}
-                      </div>
-                      <div className="line-clamp-2 text-sm text-gray-700">
-                        {fb.feedback ?? "—"}
-                      </div>
-                    </div>
-                    <div className="shrink-0">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < (Number(fb.star) || 0)
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {new Date(fb.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
-                No feedback yet.
-              </div>
-            ))}
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentFeedback?.feedbacks?.slice(0,5).map((f: any) => (
+                  <TableRow key={f.id}>
+                    <TableCell className="font-medium">{f.name}</TableCell>
+                    <TableCell>{f.star}</TableCell>
+                    <TableCell>{new Date(f.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                )) || null}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-            <div className="pt-1">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/feedback">
-                  View All Feedback <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+        <Card className="border-[#f8610e]/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[#f8610e]"><ClipboardList className="h-4 w-4"/>Recent Attendance</CardTitle>
+            <CardDescription>Latest attendance records</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Time In</TableHead>
+                  <TableHead>Time Out</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(todayAttendance ?? []).slice(0,5).map((a: any) => (
+                  <TableRow key={a.id}>
+                    <TableCell>{a.employee?.firstname} {a.employee?.lastname}</TableCell>
+                    <TableCell>{a.timeIn ? format(new Date(a.timeIn), "hh:mm a") : "-"}</TableCell>
+                    <TableCell>{a.timeOut ? format(new Date(a.timeOut), "hh:mm a") : "-"}</TableCell>
+                  </TableRow>
+                )) || null}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#f8610e]/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[#f8610e]"><Inbox className="h-4 w-4"/>Recent Inquiries</CardTitle>
+            <CardDescription>Latest customer inquiries</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentInquiries?.orders?.slice(0,5).map((o: any) => (
+                  <TableRow key={o.id}>
+                    <TableCell>{o.firstname} {o.lastname}</TableCell>
+                    <TableCell>{o.subject ?? "-"}</TableCell>
+                    <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                )) || null}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

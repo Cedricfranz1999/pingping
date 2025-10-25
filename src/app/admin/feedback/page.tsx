@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { Search, Star, Trash2, Eye } from "lucide-react"; // ⬅️ Eye added
+import { Search, Star, Trash2, Eye } from "lucide-react";
 import { api } from "~/trpc/react";
 
 // shadcn/ui imports
@@ -33,33 +33,26 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 
-type FeedbackRow = {
-  id: number;
-  name: string;
-  email: string | null;
-  contact: string | null;
-  address: string | null;
-  star: number;
-  feedback: string;
-  createdAt: Date | string;
-};
-
 const FeedbackPage: NextPage = () => {
   const [search, setSearch] = useState("");
   const [minStars, setMinStars] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-
-  // Delete modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState<{
     id: number;
     name: string;
   } | null>(null);
-
-  // View modal state
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedViewFeedback, setSelectedViewFeedback] = useState<FeedbackRow | null>(null);
+  const [viewFeedback, setViewFeedback] = useState<{
+    name: string;
+    email: string;
+    address: string;
+    contact: string;
+    star: number;
+    feedback: string;
+    createdAt: Date;
+  } | null>(null);
 
   const { data: feedbackData, refetch } = api.feedback.getAll.useQuery({
     search,
@@ -93,9 +86,6 @@ const FeedbackPage: NextPage = () => {
       </div>
     );
   };
-
-  const formatDateTime = (d: Date | string) =>
-    new Date(d).toLocaleString();
 
   return (
     <>
@@ -175,7 +165,7 @@ const FeedbackPage: NextPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {feedbackData?.feedbacks.map((feedback: FeedbackRow) => (
+              {feedbackData?.feedbacks.map((feedback) => (
                 <TableRow key={feedback.id}>
                   <TableCell>
                     <div className="font-medium">{feedback.name}</div>
@@ -194,25 +184,28 @@ const FeedbackPage: NextPage = () => {
                     {feedback.feedback}
                   </TableCell>
                   <TableCell>
-                    {new Date(feedback.createdAt).toLocaleDateString()}
+                    {feedback.createdAt.toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="flex items-center justify-end gap-1">
-                    {/* View button */}
+                  <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setSelectedViewFeedback(feedback);
+                        setViewFeedback({
+                          name: feedback.name,
+                          email: feedback.email,
+                          address: feedback.address,
+                          contact: feedback.contact,
+                          star: feedback.star,
+                          feedback: feedback.feedback,
+                          createdAt: feedback.createdAt,
+                        });
                         setIsViewModalOpen(true);
                       }}
-                      className="hover:bg-[#f8610e]/10"
-                      aria-label="View feedback"
-                      title="View feedback"
+                      className="hover:bg-gray-100"
                     >
-                      <Eye className="h-4 w-4 text-[#f8610e]" />
+                      <Eye className="h-4 w-4" />
                     </Button>
-
-                    {/* Delete button */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -224,8 +217,6 @@ const FeedbackPage: NextPage = () => {
                         setIsDeleteModalOpen(true);
                       }}
                       className="hover:bg-red-100"
-                      aria-label="Delete feedback"
-                      title="Delete feedback"
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
@@ -263,70 +254,59 @@ const FeedbackPage: NextPage = () => {
         )}
       </div>
 
-      {/* View Feedback Dialog */}
+      {/* View Feedback Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">
-              Feedback from {selectedViewFeedback?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Submitted on{" "}
-              {selectedViewFeedback
-                ? formatDateTime(selectedViewFeedback.createdAt)
-                : ""}
-            </DialogDescription>
+            <DialogTitle className="text-[#f8610e]">Feedback Details</DialogTitle>
+            <DialogDescription>Submitted user feedback</DialogDescription>
           </DialogHeader>
-
           <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <div>
-                <p className="text-xs text-muted-foreground">Email</p>
-                <p className="text-sm">{selectedViewFeedback?.email || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Contact</p>
-                <p className="text-sm">{selectedViewFeedback?.contact || "—"}</p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-xs text-muted-foreground">Address</p>
-                <p className="text-sm">{selectedViewFeedback?.address || "—"}</p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-xs text-muted-foreground">Rating</p>
-                <div className="mt-1">{renderStars(selectedViewFeedback?.star ?? 0)}</div>
-              </div>
-            </div>
-
             <div>
-              <p className="text-xs text-muted-foreground">Message</p>
-              <div className="mt-1 rounded-md border bg-white p-3 text-sm leading-relaxed">
-                <p className="whitespace-pre-line">
-                  {selectedViewFeedback?.feedback}
-                </p>
-              </div>
+              <span className="text-sm font-semibold">Name: </span>
+              <span className="text-sm">{viewFeedback?.name}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Email: </span>
+              <span className="text-sm">{viewFeedback?.email}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Contact: </span>
+              <span className="text-sm">{viewFeedback?.contact}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Address: </span>
+              <span className="text-sm">{viewFeedback?.address}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">Rating:</span>
+              {viewFeedback?.star !== undefined && renderStars(viewFeedback.star)}
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Date: </span>
+              <span className="text-sm">{viewFeedback?.createdAt.toLocaleDateString()}</span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Feedback:</span>
+              <p className="mt-1 whitespace-pre-wrap text-sm">{viewFeedback?.feedback}</p>
             </div>
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsViewModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Feedback Dialog */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete Feedback</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete feedback from{" "}
-              <span className="font-semibold">{selectedFeedback?.name}</span>? This action cannot be undone.
+              <span className="font-semibold">{selectedFeedback?.name}</span>?
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

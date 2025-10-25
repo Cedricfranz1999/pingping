@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { Edit, Plus, Search, Trash2, Check, X } from "lucide-react";
+import { Eye, Plus, Search, Trash2, Check, X } from "lucide-react";
 import { api } from "~/trpc/react";
 
 // shadcn/ui imports
@@ -36,7 +36,7 @@ const Order = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<{
+  type OrderItem = {
     id: number;
     firstname: string;
     lastname: string;
@@ -45,7 +45,8 @@ const Order = () => {
     subject?: string | null;
     message: string;
     status: boolean;
-  } | null>(null);
+  };
+  const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
   const formSchema = z.object({
     firstname: z.string().min(1, "First name is required"),
     lastname: z.string().min(1, "Last name is required"),
@@ -105,13 +106,21 @@ const Order = () => {
   });
 
   const handleCreate = (data: FormData) => {
+    const firstname = data.firstname?.trim();
+    const lastname = data.lastname?.trim();
+    const phone = data.phone?.trim();
+    const message = data.message?.trim();
+    if (!firstname || !lastname || !message || !phone || phone.length !== 11) {
+      console.warn("orders.create blocked: invalid form payload", { firstname, lastname, phone, message });
+      return;
+    }
     createOrder.mutate({
-      firstname: data.firstname,
-      lastname: data.lastname,
-      email: data.email || undefined,
-      phone: data.phone,
-      subject: data.subject || undefined,
-      message: data.message,
+      firstname,
+      lastname,
+      email: data.email?.trim() || undefined,
+      phone,
+      subject: data.subject?.trim() || undefined,
+      message,
     });
   };
 
@@ -165,6 +174,8 @@ const Order = () => {
           <h1 className="text-2xl font-bold text-[#f8610e] md:text-3xl">
             Orders
           </h1>
+          {/* Hidden per request: Add Order button */}
+          {/**
           <Button
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-[#f8610e] hover:bg-[#f8610e]/90"
@@ -172,6 +183,7 @@ const Order = () => {
             <Plus className="mr-2 h-4 w-4" />
             Add Order
           </Button>
+          **/}
         </div>
 
         <div className="relative">
@@ -199,7 +211,7 @@ const Order = () => {
             </TableHeader>
             <TableBody>
               {ordersData?.orders.length ? (
-                ordersData.orders.map((order) => (
+                ordersData.orders.map((order: OrderItem) => (
                   <TableRow key={order.id}>
                     <TableCell>{order.id}</TableCell>
                     <TableCell>
@@ -242,7 +254,7 @@ const Order = () => {
                         size="sm"
                         onClick={() => openEditModal(order)}
                       >
-                        <Edit className="h-4 w-4 text-blue-600" />
+                        <Eye className="h-4 w-4 text-blue-600" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -410,20 +422,22 @@ const Order = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Order Modal */}
+      {/* View Order Modal (was Edit) */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">Edit Order</DialogTitle>
-            <DialogDescription>Update customer order details</DialogDescription>
+            <DialogTitle className="text-[#f8610e]">View Order</DialogTitle>
+            <DialogDescription>View customer order details</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit(handleUpdate)} className="space-y-4">
+          <form className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-firstname">First Name</Label>
                 <Input
                   id="edit-firstname"
                   {...register("firstname")}
+                  readOnly
+                  disabled
                   className={errors.firstname ? "border-red-500" : ""}
                   placeholder="Enter first name"
                 />
@@ -438,6 +452,8 @@ const Order = () => {
                 <Input
                   id="edit-lastname"
                   {...register("lastname")}
+                  readOnly
+                  disabled
                   className={errors.lastname ? "border-red-500" : ""}
                   placeholder="Enter last name"
                 />
@@ -456,6 +472,8 @@ const Order = () => {
                   id="edit-email"
                   type="email"
                   {...register("email")}
+                  readOnly
+                  disabled
                   placeholder="Enter email"
                 />
                 {errors.email && (
@@ -467,6 +485,8 @@ const Order = () => {
                 <Input
                   id="edit-phone"
                   {...register("phone")}
+                  readOnly
+                  disabled
                   className={errors.phone ? "border-red-500" : ""}
                   placeholder="Enter phone number"
                 />
@@ -478,11 +498,13 @@ const Order = () => {
 
             <div className="space-y-2">
               <Label htmlFor="edit-subject">Subject</Label>
-              <Input
-                id="edit-subject"
-                {...register("subject")}
-                placeholder="Enter subject"
-              />
+                <Input
+                  id="edit-subject"
+                  {...register("subject")}
+                  readOnly
+                  disabled
+                  placeholder="Enter subject"
+                />
             </div>
 
             <div className="space-y-2">
@@ -491,6 +513,8 @@ const Order = () => {
                 id="edit-message"
                 rows={4}
                 {...register("message")}
+                readOnly
+                disabled
                 className={`w-full rounded-md border px-3 py-2 text-sm ${
                   errors.message ? "border-red-500" : ""
                 }`}
@@ -502,18 +526,8 @@ const Order = () => {
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsEditModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateOrder.isPending}
-                className="bg-[#f8610e] hover:bg-[#f8610e]/90"
-              >
-                {updateOrder.isPending ? "Updating..." : "Update Order"}
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                Close
               </Button>
             </DialogFooter>
           </form>

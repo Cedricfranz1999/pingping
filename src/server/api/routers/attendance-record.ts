@@ -31,8 +31,8 @@ export const attendanceRecordRouter = createTRPCRouter({
     .input(
       z.object({
         employeeId: z.number().optional(),
-        date: z.date().optional(),       // single-day filter
-        search: z.string().optional(),   // matches firstname/lastname/username
+        date: z.date().optional(),
+        search: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
@@ -56,9 +56,11 @@ export const attendanceRecordRouter = createTRPCRouter({
           employee: input.search
             ? {
                 OR: [
-                  { firstname: { contains: input.search, mode: "insensitive" } },
-                  { lastname:  { contains: input.search, mode: "insensitive" } },
-                  { username:  { contains: input.search, mode: "insensitive" } },
+                  {
+                    firstname: { contains: input.search, mode: "insensitive" },
+                  },
+                  { lastname: { contains: input.search, mode: "insensitive" } },
+                  { username: { contains: input.search, mode: "insensitive" } },
                 ],
               }
             : undefined,
@@ -72,84 +74,10 @@ export const attendanceRecordRouter = createTRPCRouter({
             },
           },
         },
-        orderBy: { date: "desc" },
-      });
-    }),
-
-  // ✅ Export attendance to CSV (NEW)
-  exportCSV: publicProcedure
-    .input(
-      z.object({
-        employeeId: z.number().optional(),
-        date: z.date().optional(),       // same single-day filter as getAll
-        search: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const rows = await db.attendance.findMany({
-        where: {
-          employeeId: input.employeeId,
-          date: input.date
-            ? {
-                gte: new Date(
-                  input.date.getFullYear(),
-                  input.date.getMonth(),
-                  input.date.getDate(),
-                ),
-                lt: new Date(
-                  input.date.getFullYear(),
-                  input.date.getMonth(),
-                  input.date.getDate() + 1,
-                ),
-              }
-            : undefined,
-          employee: input.search
-            ? {
-                OR: [
-                  { firstname: { contains: input.search, mode: "insensitive" } },
-                  { lastname:  { contains: input.search, mode: "insensitive" } },
-                  { username:  { contains: input.search, mode: "insensitive" } },
-                ],
-              }
-            : undefined,
+        orderBy: {
+          date: "desc",
         },
-        include: {
-          employee: { select: { firstname: true, lastname: true, username: true } },
-        },
-        orderBy: { date: "desc" },
       });
-
-      const quote = (v: unknown) => {
-        const s = String(v ?? "");
-        return s.includes(",") || s.includes("\n") || s.includes('"')
-          ? `"${s.replace(/"/g, '""')}"`
-          : s;
-      };
-
-      const header = ["ID","Employee","Username","Date","TimeIn","TimeOut","Status","Hours"];
-
-      const csv = [
-        header.join(","),
-        ...rows.map((r) => {
-          const emp = `${r.employee?.firstname ?? ""} ${r.employee?.lastname ?? ""}`.trim();
-          const hours =
-            r.timeIn && r.timeOut
-              ? ((r.timeOut.getTime() - r.timeIn.getTime()) / 36e5).toFixed(2)
-              : "";
-          return [
-            r.id,
-            quote(emp),
-            quote(r.employee?.username ?? ""),
-            r.date ? new Date(r.date).toISOString() : "",
-            r.timeIn ? new Date(r.timeIn).toISOString() : "",
-            r.timeOut ? new Date(r.timeOut).toISOString() : "",
-            quote(r.status ?? ""),
-            hours,
-          ].join(",");
-        }),
-      ].join("\n");
-
-      return { csv };
     }),
 
   // Update attendance record
@@ -189,17 +117,26 @@ export const attendanceRecordRouter = createTRPCRouter({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      // Check if already checked in today
       const existing = await db.attendance.findFirst({
         where: {
           employeeId: input.employeeId,
-          date: { gte: today, lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+          date: {
+            gte: today,
+            lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+          },
         },
       });
 
-      if (existing) throw new Error("Employee already checked in today");
+      if (existing) {
+        throw new Error("Employee already checked in today");
+      }
 
       return await db.attendance.create({
-        data: { employeeId: input.employeeId, timeIn: new Date() },
+        data: {
+          employeeId: input.employeeId,
+          timeIn: new Date(),
+        },
       });
     }),
 
@@ -213,16 +150,90 @@ export const attendanceRecordRouter = createTRPCRouter({
       const attendance = await db.attendance.findFirst({
         where: {
           employeeId: input.employeeId,
-          date: { gte: today, lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+          date: {
+            gte: today,
+            lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+          },
         },
       });
 
-      if (!attendance) throw new Error("Employee hasn't checked in today");
-      if (attendance.timeOut) throw new Error("Employee already checked out today");
+      if (!attendance) {
+        throw new Error("Employee hasn't checked in today");
+      }
+
+      if (attendance.timeOut) {
+        throw new Error("Employee already checked out today");
+      }
 
       return await db.attendance.update({
         where: { id: attendance.id },
-        data: { timeOut: new Date() },
+        data: {
+          timeOut: new Date(),
+        },
       });
+    }),
+
+  // Export attendance records as CSV (for legacy frontend usage)
+  exportCSV: publicProcedure
+    .input(
+      z
+        .object({
+          search: z.string().optional(),
+          date: z.date().optional(),
+        })
+        .optional(),
+    )
+    .mutation(async ({ input }) => {
+      const where: any = {};
+      if (input?.date) {
+        where.date = {
+          gte: new Date(input.date.getFullYear(), input.date.getMonth(), input.date.getDate()),
+          lt: new Date(input.date.getFullYear(), input.date.getMonth(), input.date.getDate() + 1),
+        };
+      }
+      if (input?.search) {
+        where.employee = {
+          OR: [
+            { firstname: { contains: input.search, mode: "insensitive" } },
+            { lastname: { contains: input.search, mode: "insensitive" } },
+            { username: { contains: input.search, mode: "insensitive" } },
+          ],
+        };
+      }
+
+      const records = await db.attendance.findMany({
+        where,
+        include: { employee: { select: { firstname: true, lastname: true, username: true } } },
+        orderBy: { date: "desc" },
+      });
+
+      const headers = [
+        "ID",
+        "Employee",
+        "Username",
+        "Date",
+        "Time In",
+        "Time Out",
+        "Status",
+        "Created At",
+        "Updated At",
+      ];
+      const rows = [
+        headers.join(","),
+        ...records.map((r) =>
+          [
+            r.id,
+            `"${r.employee?.firstname ?? ""} ${r.employee?.lastname ?? ""}"`,
+            `"${r.employee?.username ?? ""}"`,
+            r.date?.toISOString() ?? "",
+            r.timeIn ? r.timeIn.toISOString() : "",
+            r.timeOut ? r.timeOut.toISOString() : "",
+            r.status ?? "",
+            r.createdAt.toISOString(),
+            r.updatedAt.toISOString(),
+          ].join(","),
+        ),
+      ];
+      return { csv: rows.join("\n") };
     }),
 });

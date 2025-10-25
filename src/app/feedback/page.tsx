@@ -38,10 +38,6 @@ export default function FeedbackPage() {
   const [hoverStar, setHoverStar] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // 🔸 NEW: get ALL feedback summary (average + total)
-  const { data: summary, isLoading: summaryLoading } =
-    api.feedback.getSummary.useQuery();
-
   const createFeedback = api.feedback.create.useMutation({
     onSuccess: () => {
       setIsSubmitted(true);
@@ -244,25 +240,6 @@ export default function FeedbackPage() {
               tinapa in the Philippines
             </p>
             <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-[#f8610e]" />
-
-            {/* 🔸 NEW: Overall rating summary (aggregated server-side) */}
-            {summaryLoading ? (
-              <div className="mt-6 flex items-center justify-center gap-3 text-gray-500">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
-                <span>Loading rating…</span>
-              </div>
-            ) : summary ? (
-              <div className="mt-6 flex items-center justify-center gap-3 text-gray-700">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="text-lg font-semibold">
-                  {summary.average}
-                  <span className="ml-1 text-sm text-gray-500">/ 5</span>
-                </span>
-                <span className="text-sm text-gray-500">
-                  ({summary.count} feedbacks)
-                </span>
-              </div>
-            ) : null}
           </motion.div>
 
           {/* Feedback Form */}
@@ -380,7 +357,7 @@ export default function FeedbackPage() {
                         )}
                         {formData.star === 1 && (
                           <span className="text-red-500">
-                            Poor - We&apos;ll do better
+                            Poor - Well do better
                           </span>
                         )}
                         {formData.star === 2 && (
@@ -395,7 +372,7 @@ export default function FeedbackPage() {
                         )}
                         {formData.star === 4 && (
                           <span className="text-blue-500">
-                            Very Good - We&apos;re glad you enjoyed!
+                            Very Good - Were glad you enjoyed!
                           </span>
                         )}
                         {formData.star === 5 && (
@@ -489,7 +466,7 @@ export default function FeedbackPage() {
                     Customer Satisfaction
                   </h4>
                   <p className="text-sm text-gray-600">
-                    We value every customer&apos;s experience and opinion
+                    We value every customers experience and opinion
                   </p>
                 </div>
               </div>

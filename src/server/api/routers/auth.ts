@@ -18,7 +18,10 @@ export const authRouter = createTRPCRouter({
       });
 
       if (admin) {
-        const isValid = await bcrypt.compare(input.password, admin.Password);
+        // Support both hashed and legacy plaintext passwords
+        const hashedMatch = await bcrypt.compare(input.password, admin.Password).catch(() => false);
+        const plainMatch = admin.Password === input.password;
+        const isValid = hashedMatch || plainMatch;
         if (!isValid) {
           throw new Error("Invalid username or password");
         }
@@ -44,7 +47,9 @@ export const authRouter = createTRPCRouter({
       }
 
       // For employees, we need to compare passwords (assuming they're hashed)
-      const isValid = await bcrypt.compare(input.password, employee.password);
+      // Support both hashed and legacy plaintext passwords
+      const isValid = (await bcrypt.compare(input.password, employee.password).catch(() => false)) ||
+        employee.password === input.password;
       if (!isValid) {
         throw new Error("Invalid username or password");
       }
@@ -115,7 +120,9 @@ export const authRouter = createTRPCRouter({
         throw new Error("Invalid username or password");
       }
 
-      const isValid = await bcrypt.compare(input.password, user.password);
+      // Support both hashed and legacy plaintext passwords
+      const isValid = (await bcrypt.compare(input.password, user.password).catch(() => false)) ||
+        user.password === input.password;
       if (!isValid) {
         throw new Error("Invalid username or password");
       }

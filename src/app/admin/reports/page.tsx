@@ -1,6 +1,6 @@
 // ~/src/app/admin/reports/page.tsx
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type JSXElementConstructor, type Key, type ReactElement, type ReactNode, type ReactPortal } from "react";
 import { useToast } from "~/components/ui/use-toast";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -123,7 +123,7 @@ const ReportsPage = () => {
         categoryId: categoryFilter,
       } as any,
       {
-        onSuccess: (data) => {
+        onSuccess: (data: { csv: string; }) => {
           downloadCSV(data.csv, `products-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
           toast({ title: "Export Successful", description: "Products data has been exported to CSV" });
         },
@@ -141,7 +141,7 @@ const ReportsPage = () => {
         date: dateRange.from ?? undefined,
       } as any,
       {
-        onSuccess: (data) => {
+        onSuccess: (data: { csv: string; }) => {
           downloadCSV(data.csv, `attendance-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
           toast({ title: "Export Successful", description: "Attendance has been exported to CSV" });
         },
@@ -159,7 +159,7 @@ const ReportsPage = () => {
         minStars: fbMinStars ?? undefined, // 6 == all
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: { csv: BlobPart; }) => {
           const blob = new Blob([data.csv], { type: "text/csv" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -351,7 +351,7 @@ const ReportsPage = () => {
 
               <Select
                 value={categoryFilter?.toString() ?? ""}
-                onValueChange={(value) => setCategoryFilter(value ? parseInt(value) : undefined)}
+                onValueChange={(value: string) => setCategoryFilter(value ? parseInt(value) : undefined)}
                 disabled={categoriesLoading}
               >
                 <SelectTrigger className="w-[180px] rounded-xl border-gray-200 focus:border-[#f8610e] focus:ring-2 focus:ring-[#f8610e]/20">
@@ -359,8 +359,8 @@ const ReportsPage = () => {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
                   <SelectItem value="all-categories">All Categories</SelectItem>
-                  {categories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
+                  {categories?.map((category: { id: { toString: () => any } | string | number; name: any }) => (
+                    <SelectItem key={category.id.toString()} value={category.id.toString()}>
                       {category.name}
                     </SelectItem>
                   ))}
@@ -448,7 +448,7 @@ const ReportsPage = () => {
                   </TableHeader>
 
                   <TableBody>
-                    {productsData?.data.map((product, index) => (
+                    {productsData?.data.map((product: { id: Key | null | undefined; name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; description: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; categories: any[]; price: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }, index: number) => (
                       <TableRow
                         key={product.id}
                         className={`border-b border-gray-50 transition-colors hover:bg-orange-50/50 ${
@@ -650,7 +650,7 @@ const ReportsPage = () => {
               </div>
               <Select
                 value={fbMinStars?.toString() ?? ""}
-                onValueChange={(v) => { setFbMinStars(v ? parseInt(v) : 6); setFbPage(1); }}
+                onValueChange={(v: string) => { setFbMinStars(v ? parseInt(v) : 6); setFbPage(1); }}
               >
                 <SelectTrigger className="rounded-xl border-gray-200">
                   <SelectValue placeholder="Filter by rating" />

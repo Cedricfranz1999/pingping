@@ -1,4 +1,3 @@
-// ~/app/(admin)/products/page.tsx
 "use client";
 import { useState } from "react";
 import { type NextPage } from "next";
@@ -71,7 +70,7 @@ type ProductFormData = {
   stock: number;
   image?: string;
   category: string;
-  productType: ProductType; // kept in state, but HIDDEN in UI
+  productType: ProductType;
   imageFile?: File | null;
 };
 
@@ -94,7 +93,8 @@ const ProductsPage: NextPage = () => {
     description: "",
     price: "0",
     stock: 0,
-    productType: "TINAPA", // default; not shown in UI
+    productType: "TINAPA",
+
     image: "",
     category: "",
     imageFile: null,
@@ -112,6 +112,8 @@ const ProductsPage: NextPage = () => {
     sortBy,
     sortOrder,
   });
+
+  console.log("TEST", productsData);
 
   const { data: categories } = api.product.getCategories.useQuery();
 
@@ -167,7 +169,7 @@ const ProductsPage: NextPage = () => {
       description: product.description,
       price: product.price,
       stock: product.stock,
-      productType: product.productType, // kept but hidden
+      productType: product.productType,
       image: product.image || "",
       category: product.categories[0]?.category.name || "",
       imageFile: null,
@@ -203,27 +205,23 @@ const ProductsPage: NextPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Common fields
-    const base = {
+    const payload = {
       name: formData.name,
       description: formData.description,
       price: formData.price,
+      stock: formData.stock,
       image: formData.image,
       category: formData.category,
-      productType: formData.productType, // still sent (hidden in UI)
+      productType: formData.productType,
     };
 
     if (isEditModalOpen && selectedProduct) {
       updateProduct.mutate({
         id: selectedProduct.id,
-        ...base,
-        stock: formData.stock,
+        ...payload,
       });
     } else {
-      createProduct.mutate({
-        ...base,
-        stock: 0,
-      });
+      createProduct.mutate(payload);
     }
   };
 
@@ -339,7 +337,7 @@ const ProductsPage: NextPage = () => {
         <Card className="border-[#f8610e]/20">
           <CardHeader>
             <CardTitle className="text-[#f8610e]">Products List</CardTitle>
-            <CardDescription>Manage your product</CardDescription>
+            <CardDescription>Manage your product inventory</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -382,17 +380,33 @@ const ProductsPage: NextPage = () => {
                         )}
                       </div>
                     </TableHead>
-                    {/* Stock column hidden in table UI */}
+                    {/* <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("stock")}
+                    >
+                      <div className="flex items-center">
+                        Stock
+                        {sortBy === "stock" ? (
+                          sortOrder === "asc" ? (
+                            <ChevronUp className="ml-1 h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="ml-1 h-4 w-4" />
+                          )
+                        ) : (
+                          <span className="ml-1 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead> */}
                     <TableHead>Category</TableHead>
-                    {/* ⬇️ TYPE column removed */}
+                    <TableHead>Type</TableHead>
+
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      {/* colSpan 6 after removing Type column */}
-                      <TableCell colSpan={6} className="py-8 text-center">
+                      <TableCell colSpan={7} className="py-8 text-center">
                         <div className="flex items-center justify-center">
                           <Package className="mr-2 h-4 w-4 animate-spin" />
                           Loading products...
@@ -401,8 +415,7 @@ const ProductsPage: NextPage = () => {
                     </TableRow>
                   ) : productsData?.products.length === 0 ? (
                     <TableRow>
-                      {/* colSpan 6 after removing Type column */}
-                      <TableCell colSpan={6} className="py-8 text-center">
+                      <TableCell colSpan={7} className="py-8 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Package className="text-muted-foreground h-8 w-8" />
                           <p className="text-muted-foreground">
@@ -439,9 +452,14 @@ const ProductsPage: NextPage = () => {
                             ₱{parseFloat(product.price).toFixed(2)}
                           </div>
                         </TableCell>
-
-                        {/* Stock badge hidden from list UI */}
-
+                        {/* <TableCell>
+                          <Badge
+                            variant={getStockBadgeVariant(product.stock)}
+                            className={`${product.stock > 10 ? "bg-green-600" : "bg-red-600"}`}
+                          >
+                            {product.stock} - {getStockText(product.stock)}
+                          </Badge>
+                        </TableCell> */}
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -451,9 +469,14 @@ const ProductsPage: NextPage = () => {
                               "Uncategorized"}
                           </Badge>
                         </TableCell>
-
-                        {/* ⬇️ TYPE cell removed */}
-
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="border-[#f8610e]/20 text-[#f8610e]"
+                          >
+                            {product.productType}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -555,7 +578,6 @@ const ProductsPage: NextPage = () => {
         </Card>
       </div>
 
-      {/* Create Product (Type hidden; Stock hidden) */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -563,7 +585,7 @@ const ProductsPage: NextPage = () => {
               Add New Product
             </DialogTitle>
             <DialogDescription>
-              Create a new product.
+              Create a new product for your inventory.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -596,24 +618,46 @@ const ProductsPage: NextPage = () => {
               />
             </div>
 
-            {/* Stock hidden in CREATE; show only Price */}
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (₱)</Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={formData.price}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    price: e.target.value,
-                  })
-                }
-                placeholder="0.00"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (₱)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      price: e.target.value,
+                    })
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Hidden per request: Stock field (no inventory) */}
+              {/**
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  min="0"
+                  required
+                  value={formData.stock}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      stock: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="0"
+                />
+              </div>
+              **/}
             </div>
 
             <div className="space-y-2">
@@ -648,7 +692,9 @@ const ProductsPage: NextPage = () => {
                   className="border-input bg-background hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm"
                 >
                   <Upload className="h-4 w-4" />
-                  {formData.imageFile ? formData.imageFile.name : "Upload Image"}
+                  {formData.imageFile
+                    ? formData.imageFile.name
+                    : "Upload Image"}
                 </label>
                 <input
                   id="file-upload"
@@ -691,7 +737,6 @@ const ProductsPage: NextPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Product (Type hidden; Stock input commented) */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -730,7 +775,6 @@ const ProductsPage: NextPage = () => {
               />
             </div>
 
-            {/* EDIT: Price + (Stock hidden/commented) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-price">Price (₱)</Label>
@@ -751,9 +795,26 @@ const ProductsPage: NextPage = () => {
                 />
               </div>
 
+              {/* Hidden per request: Stock field in edit form (no inventory) */}
+              {/**
               <div className="space-y-2">
-                {/* Stock field intentionally hidden in EDIT */}
+                <Label htmlFor="edit-stock">Stock</Label>
+                <Input
+                  id="edit-stock"
+                  type="number"
+                  min="0"
+                  required
+                  value={formData.stock}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      stock: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="0"
+                />
               </div>
+              **/}
             </div>
 
             <div className="space-y-2">
@@ -788,7 +849,9 @@ const ProductsPage: NextPage = () => {
                   className="border-input bg-background hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm"
                 >
                   <Upload className="h-4 w-4" />
-                  {formData.imageFile ? formData.imageFile.name : "Change Image"}
+                  {formData.imageFile
+                    ? formData.imageFile.name
+                    : "Change Image"}
                 </label>
                 <input
                   id="edit-file-upload"
