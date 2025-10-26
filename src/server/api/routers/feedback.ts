@@ -31,10 +31,37 @@ export const feedbackRouter = createTRPCRouter({
         minStars: z.number().min(1).max(6).optional(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(10),
+        dateFrom: z.date().optional(),
+        dateTo: z.date().optional(),
       }),
     )
     .query(async ({ input }) => {
-      const { search, minStars, page, limit } = input;
+      const { search, minStars, page, limit, dateFrom, dateTo } = input;
+
+      // Build date range normalized to day boundaries
+      let createdAtFilter: Prisma.DateTimeFilter | undefined = undefined;
+      if (dateFrom) {
+        const start = new Date(
+          dateFrom.getFullYear(),
+          dateFrom.getMonth(),
+          dateFrom.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const endBase = dateTo ?? dateFrom;
+        const end = new Date(
+          endBase.getFullYear(),
+          endBase.getMonth(),
+          endBase.getDate() + 1,
+          0,
+          0,
+          0,
+          0,
+        );
+        createdAtFilter = { gte: start, lt: end };
+      }
 
       const where: Prisma.FeedbackWhereInput = {
         AND: [
@@ -48,6 +75,7 @@ export const feedbackRouter = createTRPCRouter({
               }
             : {},
           minStars !== 6 ? { star: { gte: minStars } } : {},
+          createdAtFilter ? { createdAt: createdAtFilter } : {},
         ].filter(Boolean) as Prisma.FeedbackWhereInput[],
       };
 
@@ -88,10 +116,37 @@ export const feedbackRouter = createTRPCRouter({
         .object({
           search: z.string().optional(),
           minStars: z.number().min(1).max(6).optional(),
+          dateFrom: z.date().optional(),
+          dateTo: z.date().optional(),
         })
         .optional(),
     )
     .mutation(async ({ input }) => {
+      // Build date range if provided
+      let createdAtFilter: Prisma.DateTimeFilter | undefined = undefined;
+      if (input?.dateFrom) {
+        const start = new Date(
+          input.dateFrom.getFullYear(),
+          input.dateFrom.getMonth(),
+          input.dateFrom.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const endBase = input.dateTo ?? input.dateFrom;
+        const end = new Date(
+          endBase.getFullYear(),
+          endBase.getMonth(),
+          endBase.getDate() + 1,
+          0,
+          0,
+          0,
+          0,
+        );
+        createdAtFilter = { gte: start, lt: end };
+      }
+
       const where: Prisma.FeedbackWhereInput = {
         AND: [
           input?.search
@@ -106,6 +161,7 @@ export const feedbackRouter = createTRPCRouter({
               }
             : {},
           input?.minStars && input.minStars !== 6 ? { star: { gte: input.minStars } } : {},
+          createdAtFilter ? { createdAt: createdAtFilter } : {},
         ].filter(Boolean) as Prisma.FeedbackWhereInput[],
       };
 

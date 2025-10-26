@@ -73,9 +73,22 @@ const AttendancePage: NextPage = () => {
     status: undefined as "OVERTIME" | "UNDERTIME" | "EXACT_TIME" | undefined,
   });
 
+  // Normalize selected date to local noon to avoid timezone day-shift in server (UTC) environments
+  const selectedDateMidday = selectedDate
+    ? new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        12,
+        0,
+        0,
+        0,
+      )
+    : undefined;
+
   const { data: attendances, refetch } = api.attendanceRecord.getAll.useQuery({
     employeeId: user?.userId,
-    date: selectedDate,
+    date: selectedDateMidday,
     search,
   });
 

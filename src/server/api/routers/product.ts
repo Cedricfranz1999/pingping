@@ -184,11 +184,26 @@ export const productsRouter = createTRPCRouter({
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      const deleted = await db.product.delete({
+      const existing = await db.product.findUnique({
         where: { id: input.id },
         include: { categories: true },
       });
-      return deleted;
+
+      if (!existing) {
+        throw new Error("Product not found");
+      }
+
+      await db.$transaction([
+        // Remove dependent records to satisfy FK constraints
+        db.cartItem.deleteMany({ where: { productId: input.id } }),
+        db.orderItem.deleteMany({ where: { productId: input.id } }),
+        db.productLog.deleteMany({ where: { productId: input.id } }),
+        db.productCategory.deleteMany({ where: { productId: input.id } }),
+        db.product.delete({ where: { id: input.id } }),
+      ]);
+
+      // Return the previously found product (client ignores response, but keep shape stable)
+      return existing;
     }),
   getTinapaProducts: publicProcedure.query(async ({ ctx }) => {
     return await ctx.db.product.findMany({

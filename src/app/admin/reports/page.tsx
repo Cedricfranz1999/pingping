@@ -5,6 +5,8 @@ import { useToast } from "~/components/ui/use-toast";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Calendar } from "~/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -14,10 +16,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "~/components/ui/select";
-import { Calendar } from "~/components/ui/calendar";
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "~/components/ui/popover";
+// Removed Calendar date range UI in header per request
+// import { Calendar } from "~/components/ui/calendar";
+// Removed Popover date range UI in header per request
+// import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import {
@@ -68,11 +70,25 @@ const ReportsPage = () => {
   const [attSearch, setAttSearch] = useState("");
   const [attPage, setAttPage] = useState(1);
   const attLimit = 10;
+  const [attDate, setAttDate] = useState<Date | undefined>();
+
+  // Normalize selected date to local noon to avoid timezone day-shift in server (UTC) environments
+  const attDateMidday = attDate
+    ? new Date(
+        attDate.getFullYear(),
+        attDate.getMonth(),
+        attDate.getDate(),
+        12,
+        0,
+        0,
+        0,
+      )
+    : undefined;
 
   const { data: attendanceRaw, isLoading: attendanceLoading } =
     api.attendanceRecord.getAll.useQuery({
       search: attSearch || undefined,
-      date: dateRange.from ?? undefined,
+      date: attDateMidday,
     });
 
   const attTotal = attendanceRaw?.length ?? 0;
@@ -87,6 +103,7 @@ const ReportsPage = () => {
   const [fbMinStars, setFbMinStars] = useState<number | null>(6); // 6 == "All"
   const [fbPage, setFbPage] = useState(1);
   const fbLimit = 10;
+  const [fbDateRange, setFbDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
 
   const { data: feedbackData, isLoading: feedbackLoading } =
     api.feedback.getAll.useQuery({
@@ -94,6 +111,8 @@ const ReportsPage = () => {
       minStars: fbMinStars ?? undefined,
       page: fbPage,
       limit: fbLimit,
+      dateFrom: fbDateRange.from,
+      dateTo: fbDateRange.to,
     });
 
   // --- EXPORTS ---
@@ -138,7 +157,7 @@ const ReportsPage = () => {
     exportAttendanceMutation.mutate(
       {
         search: attSearch || undefined,
-        date: dateRange.from ?? undefined,
+        date: attDateMidday ?? undefined,
       } as any,
       {
         onSuccess: (data: { csv: string; }) => {
@@ -157,6 +176,8 @@ const ReportsPage = () => {
       {
         search: fbSearch || undefined,
         minStars: fbMinStars ?? undefined, // 6 == all
+        dateFrom: fbDateRange.from,
+        dateTo: fbDateRange.to,
       },
       {
         onSuccess: (data: { csv: BlobPart; }) => {
@@ -212,37 +233,36 @@ const ReportsPage = () => {
               </p>
             </div>
 
-            {/* Global date range filter */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    "Pick a date range"
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto rounded-xl p-0">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+            {/* Top exports only (date range hidden) */}
+            <div className="ml-auto flex flex-nowrap items-center gap-2 sm:gap-3">
+              <Button
+                onClick={handleExportProductsCSV}
+                disabled={exportProductsMutation.isPending}
+                variant="secondary"
+                size="sm"
+                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
+              >
+                Export Products
+              </Button>
+              <Button
+                onClick={handleExportAttendanceCSV}
+                disabled={exportAttendanceMutation.isPending}
+                variant="secondary"
+                size="sm"
+                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
+              >
+                Export Attendance
+              </Button>
+              <Button
+                onClick={handleExportFeedbackCSV}
+                disabled={exportFeedbackMutation.isPending}
+                variant="secondary"
+                size="sm"
+                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
+              >
+                Export Feedback
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -293,7 +313,7 @@ const ReportsPage = () => {
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium tracking-wider text-green-600 uppercase">
-                    Attendance ({dateRange.from ? format(dateRange.from, "LLL dd, y") : "RECORD"})
+                    Attendance ({attDate ? format(attDate, "LLL dd, y") : "RECORD"})
                   </p>
                   <p className="text-3xl font-bold text-green-900">
                     {attendanceCount}
@@ -367,6 +387,8 @@ const ReportsPage = () => {
                 </SelectContent>
               </Select>
 
+              {/* Hidden per request: Product date filter (Advanced Filters) */}
+              {/**
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -399,6 +421,7 @@ const ReportsPage = () => {
                   />
                 </PopoverContent>
               </Popover>
+              **/}
             </div>
           </CardContent>
         </Card>
@@ -525,14 +548,38 @@ const ReportsPage = () => {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="relative mb-4 max-w-md">
-              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search employee..."
-                value={attSearch}
-                onChange={(e) => { setAttSearch(e.target.value); setAttPage(1); }}
-                className="rounded-xl border-gray-200 pl-10"
-              />
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="relative md:col-span-2">
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search employee..."
+                  value={attSearch}
+                  onChange={(e) => { setAttSearch(e.target.value); setAttPage(1); }}
+                  className="rounded-xl border-gray-200 pl-10"
+                />
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start rounded-xl border-gray-200 text-left font-normal",
+                      !attDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {attDate ? format(attDate, "LLL dd, y") : <span>Filter date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto rounded-xl p-0">
+                  <Calendar
+                    mode="single"
+                    selected={attDate}
+                    onSelect={(d) => { setAttDate(d ?? undefined); setAttPage(1); }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {attendanceLoading ? (
@@ -639,7 +686,7 @@ const ReportsPage = () => {
           </CardHeader>
           <CardContent className="space-y-4 p-6">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="relative md:col-span-2">
+              <div className="relative md:col-span-1 md:col-span-2">
                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search feedback..."
@@ -648,6 +695,38 @@ const ReportsPage = () => {
                   className="rounded-xl border-gray-200 pl-10"
                 />
               </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start rounded-xl border-gray-200 text-left font-normal",
+                      !fbDateRange.from && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fbDateRange.from ? (
+                      fbDateRange.to ? (
+                        <>
+                          {format(fbDateRange.from, "LLL dd, y")} - {format(fbDateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(fbDateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Filter date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto rounded-xl p-0">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: fbDateRange.from, to: fbDateRange.to }}
+                    onSelect={(range) => setFbDateRange({ from: range?.from, to: range?.to })}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
               <Select
                 value={fbMinStars?.toString() ?? ""}
                 onValueChange={(v: string) => { setFbMinStars(v ? parseInt(v) : 6); setFbPage(1); }}

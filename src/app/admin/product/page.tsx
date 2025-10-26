@@ -337,7 +337,7 @@ const ProductsPage: NextPage = () => {
         <Card className="border-[#f8610e]/20">
           <CardHeader>
             <CardTitle className="text-[#f8610e]">Products List</CardTitle>
-            <CardDescription>Manage your product inventory</CardDescription>
+            <CardDescription>Manage your product</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -398,7 +398,8 @@ const ProductsPage: NextPage = () => {
                       </div>
                     </TableHead> */}
                     <TableHead>Category</TableHead>
-                    <TableHead>Type</TableHead>
+                    {/* Hidden per request: Type column */}
+                    {/** <TableHead>Type</TableHead> **/}
 
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -469,6 +470,8 @@ const ProductsPage: NextPage = () => {
                               "Uncategorized"}
                           </Badge>
                         </TableCell>
+                        {/* Hidden per request: Type cell */}
+                        {/**
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -477,6 +480,7 @@ const ProductsPage: NextPage = () => {
                             {product.productType}
                           </Badge>
                         </TableCell>
+                        **/}
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -579,13 +583,13 @@ const ProductsPage: NextPage = () => {
       </div>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[640px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#f8610e]">
               Add New Product
             </DialogTitle>
             <DialogDescription>
-              Create a new product for your inventory.
+              Create a new product.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -607,6 +611,7 @@ const ProductsPage: NextPage = () => {
               <Textarea
                 id="description"
                 required
+                className="min-h-24 max-h-48 resize-none overflow-y-auto"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({
@@ -738,7 +743,7 @@ const ProductsPage: NextPage = () => {
       </Dialog>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[640px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#f8610e]">Edit Product</DialogTitle>
             <DialogDescription>
@@ -764,6 +769,7 @@ const ProductsPage: NextPage = () => {
               <Textarea
                 id="edit-description"
                 required
+                className="min-h-24 max-h-48 resize-none overflow-y-auto"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({
