@@ -205,7 +205,7 @@ export default function LoginPage() {
             </motion.form>
 
             {/* Footer */}
-            <motion.div variants={fadeInUp} className="mt-8 text-center">
+            {/* <motion.div variants={fadeInUp} className="mt-8 text-center">
               <p className="text-sm text-gray-600">
                 Dont have an account{" "}
                 <a
@@ -215,7 +215,7 @@ export default function LoginPage() {
                   Contact Administrator
                 </a>
               </p>
-            </motion.div>
+            </motion.div> */}
           </CardContent>
         </Card>
 
