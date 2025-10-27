@@ -35,7 +35,7 @@ import {
 
 const FeedbackPage: NextPage = () => {
   const [search, setSearch] = useState("");
-  const [minStars, setMinStars] = useState<number | null>(null);
+  const [stars, setStars] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -56,7 +56,7 @@ const FeedbackPage: NextPage = () => {
 
   const { data: feedbackData, refetch } = api.feedback.getAll.useQuery({
     search,
-    minStars: minStars ?? undefined,
+    stars: stars ?? undefined,
     page,
     limit,
   });
@@ -114,9 +114,13 @@ const FeedbackPage: NextPage = () => {
           </div>
 
           <Select
-            value={minStars?.toString() ?? ""}
+            value={stars?.toString() ?? "all"}
             onValueChange={(value) => {
-              setMinStars(value ? parseInt(value) : null);
+              if (value === "all") {
+                setStars(null);
+              } else {
+                setStars(value ? parseInt(value) : null);
+              }
               setPage(1);
             }}
           >
@@ -124,12 +128,12 @@ const FeedbackPage: NextPage = () => {
               <SelectValue placeholder="Filter by rating" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="6">All Ratings</SelectItem>
+              <SelectItem value="all">All Ratings</SelectItem>
               <SelectItem value="5">5 Stars</SelectItem>
-              <SelectItem value="4">4+ Stars</SelectItem>
-              <SelectItem value="3">3+ Stars</SelectItem>
-              <SelectItem value="2">2+ Stars</SelectItem>
-              <SelectItem value="1">1+ Stars</SelectItem>
+              <SelectItem value="4">4 Stars</SelectItem>
+              <SelectItem value="3">3 Stars</SelectItem>
+              <SelectItem value="2">2 Stars</SelectItem>
+              <SelectItem value="1">1 Star</SelectItem>
             </SelectContent>
           </Select>
 

@@ -44,6 +44,7 @@ import {
 const AttendancePage: NextPage = () => {
   type AttendanceItem = {
     id: number;
+    employeeId: number;
     employee: { firstname: string; lastname: string; username?: string };
     date: Date;
     timeIn?: Date | null;
@@ -230,7 +231,7 @@ const AttendancePage: NextPage = () => {
 
           <Input
             type="number"
-            placeholder="Filter by Employee ID"
+            placeholder="Filter by Employee ID (number)"
             value={employeeId || ""}
             onChange={(e) =>
               setEmployeeId(e.target.value ? Number(e.target.value) : undefined)
@@ -242,7 +243,8 @@ const AttendancePage: NextPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead>Attendance ID</TableHead>
+                <TableHead>Employee ID</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Time In</TableHead>
@@ -255,6 +257,7 @@ const AttendancePage: NextPage = () => {
               {attendances?.map((attendance: AttendanceItem) => (
                 <TableRow key={attendance.id}>
                   <TableCell>{attendance.id}</TableCell>
+                  <TableCell>{attendance.employeeId}</TableCell>
                   <TableCell>
                     {attendance.employee.firstname}{" "}
                     {attendance.employee.lastname}

@@ -13,7 +13,8 @@ export const feedbackRouter = createTRPCRouter({
         email: z.string().email(),
         address: z.string().min(1),
         contact: z.string().min(1),
-        star: z.number().min(1).max(6),
+        // Enforce 1-5 star ratings for creation
+        star: z.number().min(1).max(5),
         feedback: z.string().min(1),
       }),
     )
@@ -28,7 +29,10 @@ export const feedbackRouter = createTRPCRouter({
     .input(
       z.object({
         search: z.string().optional(),
+        // Backward compat: keep minStars for existing callers (interpreted as >=)
         minStars: z.number().min(1).max(6).optional(),
+        // New: exact stars filter (1-5)
+        stars: z.number().min(1).max(5).optional(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(10),
         dateFrom: z.date().optional(),
@@ -36,7 +40,7 @@ export const feedbackRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input }) => {
-      const { search, minStars, page, limit, dateFrom, dateTo } = input;
+      const { search, minStars, stars, page, limit, dateFrom, dateTo } = input;
 
       // Build date range normalized to day boundaries
       let createdAtFilter: Prisma.DateTimeFilter | undefined = undefined;
@@ -74,7 +78,8 @@ export const feedbackRouter = createTRPCRouter({
                 ],
               }
             : {},
-          minStars !== 6 ? { star: { gte: minStars } } : {},
+          stars ? { star: { equals: stars } } : {},
+          !stars && minStars !== 6 ? { star: { gte: minStars } } : {},
           createdAtFilter ? { createdAt: createdAtFilter } : {},
         ].filter(Boolean) as Prisma.FeedbackWhereInput[],
       };
@@ -116,6 +121,8 @@ export const feedbackRouter = createTRPCRouter({
         .object({
           search: z.string().optional(),
           minStars: z.number().min(1).max(6).optional(),
+          // Export supports exact star filter 1-5
+          stars: z.number().min(1).max(5).optional(),
           dateFrom: z.date().optional(),
           dateTo: z.date().optional(),
         })
@@ -160,7 +167,10 @@ export const feedbackRouter = createTRPCRouter({
                 ],
               }
             : {},
-          input?.minStars && input.minStars !== 6 ? { star: { gte: input.minStars } } : {},
+          input?.stars ? { star: { equals: input.stars } } : {},
+          !input?.stars && input?.minStars && input.minStars !== 6
+            ? { star: { gte: input.minStars } }
+            : {},
           createdAtFilter ? { createdAt: createdAtFilter } : {},
         ].filter(Boolean) as Prisma.FeedbackWhereInput[],
       };

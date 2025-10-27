@@ -507,7 +507,7 @@ const Sidebar = () => {
                         : "text-white"
                     }`}
                   />
-                  User Feedback
+                   Feedback
                 </Link>
               </motion.div>
 
