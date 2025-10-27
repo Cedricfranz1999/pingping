@@ -269,7 +269,7 @@ const AttendancePage: NextPage = () => {
         </div>
 
         {/* Bulk actions bar */}
-        <div className="flex items-center justify-between py-2">
+        {/* <div className="flex items-center justify-between py-2">
           <div className="text-sm text-gray-600">
             Selected: {selectedIds.length}
           </div>
@@ -282,7 +282,7 @@ const AttendancePage: NextPage = () => {
               {deleteManyAttendance.isPending ? "Deleting..." : "Delete Selected"}
             </Button>
           </div>
-        </div>
+        </div> */}
 
         <div className="rounded-md border">
           <Table>
@@ -302,7 +302,7 @@ const AttendancePage: NextPage = () => {
                 <TableHead>Time In</TableHead>
                 <TableHead>Time Out</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {/* <TableHead className="text-right">Actions</TableHead> */}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -334,7 +334,7 @@ const AttendancePage: NextPage = () => {
                       ? format(attendance.timeOut, "hh:mm a")
                       : "-"}
                   </TableCell>
-                  <TableCell>{attendance.status || "-"}</TableCell>
+                  {/* <TableCell>{attendance.status || "-"}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
@@ -347,7 +347,7 @@ const AttendancePage: NextPage = () => {
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               ))}
             </TableBody>
