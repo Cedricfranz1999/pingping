@@ -100,7 +100,8 @@ const ReportsPage = () => {
 
   // --- FEEDBACK ---
   const [fbSearch, setFbSearch] = useState("");
-  const [fbMinStars, setFbMinStars] = useState<number | null>(6); // 6 == "All"
+  // Exact star filter (1-5). null means All ratings
+  const [fbStars, setFbStars] = useState<number | null>(null);
   const [fbPage, setFbPage] = useState(1);
   const fbLimit = 10;
   const [fbDateRange, setFbDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
@@ -108,7 +109,7 @@ const ReportsPage = () => {
   const { data: feedbackData, isLoading: feedbackLoading } =
     api.feedback.getAll.useQuery({
       search: fbSearch || undefined,
-      minStars: fbMinStars ?? undefined,
+      stars: fbStars ?? undefined,
       page: fbPage,
       limit: fbLimit,
       dateFrom: fbDateRange.from,
@@ -175,7 +176,7 @@ const ReportsPage = () => {
     exportFeedbackMutation.mutate(
       {
         search: fbSearch || undefined,
-        minStars: fbMinStars ?? undefined, // 6 == all
+        stars: fbStars ?? undefined,
         dateFrom: fbDateRange.from,
         dateTo: fbDateRange.to,
       },
@@ -728,8 +729,8 @@ const ReportsPage = () => {
                 </PopoverContent>
               </Popover>
               <Select
-                value={fbMinStars?.toString() ?? ""}
-                onValueChange={(v: string) => { setFbMinStars(v ? parseInt(v) : 6); setFbPage(1); }}
+                value={fbStars?.toString() ?? "6"}
+                onValueChange={(v: string) => { setFbStars(v === "all" || v === "6" ? null : parseInt(v)); setFbPage(1); }}
               >
                 <SelectTrigger className="rounded-xl border-gray-200">
                   <SelectValue placeholder="Filter by rating" />
