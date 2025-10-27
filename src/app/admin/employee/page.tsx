@@ -57,6 +57,7 @@ import {
   Search,
   Plus,
   Edit,
+  Trash2,
   UserCheck,
   UserX,
   Settings,
@@ -145,7 +146,23 @@ const EmployeePage = () => {
     },
   });
 
-  // Delete removed in favor of deactivate/activate toggle
+  const deleteMutation = api.employee.delete.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "Employee deleted successfully",
+        variant: "default",
+      });
+      refetch();
+    },
+    onError: (error: { message: any }) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const toggleActiveMutation = api.employee.toggleActive.useMutation({
     onSuccess: () => {
@@ -295,7 +312,14 @@ const EmployeePage = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Delete removed: use handleToggleActive instead
+  const handleDelete = (id?: unknown) => {
+    const numId = typeof id === "number" ? id : typeof id === "string" ? Number(id) : NaN;
+    if (Number.isNaN(numId)) {
+      toast({ title: "Error", description: "Invalid employee id", variant: "destructive" });
+      return;
+    }
+    deleteMutation.mutate({ id: numId });
+  };
 
   const handleToggleActive = (id: number, isactive: boolean) => {
     toggleActiveMutation.mutate({ id, isactive: !isactive });
@@ -393,7 +417,7 @@ const EmployeePage = () => {
             <div className="text-2xl font-bold text-[#f8610e]">
               {employees.length}
             </div>
-            <p className="text-muted-foreground text-xs">matching search</p>
+            <p className="text-muted-foreground text-xs">on this page</p>
           </CardContent>
         </Card>
       </div>
@@ -688,7 +712,41 @@ const EmployeePage = () => {
                           )}
                         </Button>
                         {/* Keep permissions control hidden */}
-                        {/* Delete action removed: use Deactivate/Activate instead */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#f8610e]/20 bg-transparent hover:bg-[#f8610e]/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="ml-1">Delete</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-[#f8610e]">
+                                Delete Employee
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {employee.firstname} {employee.lastname}? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(Number(employee.id))}
+                                className="bg-[#f8610e] hover:bg-[#f8610e]/90"
+                                disabled={deleteMutation.isPending}
+                              >
+                                {deleteMutation.isPending && (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                )}
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
