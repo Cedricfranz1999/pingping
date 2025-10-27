@@ -623,7 +623,7 @@ export default function ImprovedHomePage() {
                       <p className="text-gray-600">
                         Brgy Matobato,
                         <br />
-                        Calbayog City Samar purok 2
+                        Calbayog City Samar purok 4 Rono st.
                         <br />
                         Philippines
                       </p>
