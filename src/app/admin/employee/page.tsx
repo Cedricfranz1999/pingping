@@ -78,8 +78,8 @@ interface Employee {
   username: string;
   password: string;
   address: string;
-  gender: "Male" | "Female" | "Other";
-  isactive?: boolean | null;
+  gender: string;
+  isactive: boolean | null;
   canModify: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -191,7 +191,7 @@ const EmployeePage = () => {
     username: string;
     password: string;
     address: string;
-    gender: "Male" | "Female" | "Other";
+    gender: string;
     isactive: boolean;
     canModify: boolean;
   }>({
@@ -265,6 +265,8 @@ const EmployeePage = () => {
       ...formData,
       image: formData.image || undefined,
       middlename: formData.middlename || undefined,
+      // Ensure gender matches API enum
+      gender: (formData.gender as "Male" | "Female" | "Other"),
       // Force new employees to be active as requested
       isactive: true,
     };
@@ -534,7 +536,7 @@ const EmployeePage = () => {
                       <Label htmlFor="gender">Gender</Label>
                       <Select
                         value={formData.gender}
-                        onValueChange={(value: "Male" | "Female" | "Other") =>
+                        onValueChange={(value: string) =>
                           setFormData({ ...formData, gender: value })
                         }
                       >
@@ -805,7 +807,7 @@ const EmployeePage = () => {
               <Label htmlFor="edit-gender">Gender</Label>
               <Select
                 value={formData.gender}
-                onValueChange={(value: "Male" | "Female" | "Other") =>
+                onValueChange={(value: string) =>
                   setFormData({ ...formData, gender: value })
                 }
               >
