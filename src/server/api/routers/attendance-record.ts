@@ -110,6 +110,16 @@ export const attendanceRecordRouter = createTRPCRouter({
       });
     }),
 
+  // Bulk delete attendance records
+  deleteMany: publicProcedure
+    .input(z.object({ ids: z.array(z.number()).min(1) }))
+    .mutation(async ({ input }) => {
+      const res = await db.attendance.deleteMany({
+        where: { id: { in: input.ids } },
+      });
+      return { count: res.count };
+    }),
+
   // Check in employee
   checkIn: publicProcedure
     .input(z.object({ employeeId: z.number() }))

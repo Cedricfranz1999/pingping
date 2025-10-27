@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { Checkbox } from "~/components/ui/checkbox";
 
 const AttendancePage: NextPage = () => {
   type AttendanceItem = {
@@ -54,8 +55,10 @@ const AttendancePage: NextPage = () => {
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [employeeId, setEmployeeId] = useState<number | undefined>();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState<{
@@ -116,6 +119,14 @@ const AttendancePage: NextPage = () => {
     },
   });
 
+  const deleteManyAttendance = api.attendanceRecord.deleteMany.useMutation({
+    onSuccess: () => {
+      void refetch();
+      setIsBulkDeleteOpen(false);
+      setSelectedIds([]);
+    },
+  });
+
   const checkIn = api.attendanceRecord.checkIn.useMutation({
     onSuccess: () => {
       void refetch();
@@ -144,6 +155,24 @@ const AttendancePage: NextPage = () => {
   const handleDelete = () => {
     if (selectedAttendance) {
       deleteAttendance.mutate({ id: selectedAttendance.id });
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const allOnPageSelected = (attendances ?? []).length > 0 &&
+    (attendances ?? []).every((a: AttendanceItem) => selectedIds.includes(a.id));
+
+  const toggleSelectAllOnPage = () => {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !(attendances ?? []).some((a: AttendanceItem) => a.id === id)));
+    } else {
+      const pageIds = (attendances ?? []).map((a: AttendanceItem) => a.id);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
     }
   };
 
@@ -239,10 +268,33 @@ const AttendancePage: NextPage = () => {
           />
         </div>
 
+        {/* Bulk actions bar */}
+        <div className="flex items-center justify-between py-2">
+          <div className="text-sm text-gray-600">
+            Selected: {selectedIds.length}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="destructive"
+              disabled={selectedIds.length === 0 || deleteManyAttendance.isPending}
+              onClick={() => setIsBulkDeleteOpen(true)}
+            >
+              {deleteManyAttendance.isPending ? "Deleting..." : "Delete Selected"}
+            </Button>
+          </div>
+        </div>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allOnPageSelected}
+                    onCheckedChange={toggleSelectAllOnPage}
+                    aria-label="Select all on page"
+                  />
+                </TableHead>
                 <TableHead>Attendance ID</TableHead>
                 <TableHead>Employee ID</TableHead>
                 <TableHead>Employee</TableHead>
@@ -256,6 +308,13 @@ const AttendancePage: NextPage = () => {
             <TableBody>
               {attendances?.map((attendance: AttendanceItem) => (
                 <TableRow key={attendance.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.includes(attendance.id)}
+                      onCheckedChange={() => toggleSelect(attendance.id)}
+                      aria-label={`Select attendance ${attendance.id}`}
+                    />
+                  </TableCell>
                   <TableCell>{attendance.id}</TableCell>
                   <TableCell>{attendance.employeeId}</TableCell>
                   <TableCell>
@@ -419,6 +478,41 @@ const AttendancePage: NextPage = () => {
               </Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Selected Records</DialogTitle>
+            <DialogDescription>
+              You are about to delete {selectedIds.length} attendance record{selectedIds.length === 1 ? "" : "s"}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-60 overflow-auto rounded border p-3 text-sm">
+            {(attendances ?? [])
+              .filter((a: AttendanceItem) => selectedIds.includes(a.id))
+              .map((a: AttendanceItem) => (
+                <div key={a.id} className="flex items-center justify-between py-1">
+                  <span>#{a.id} - {a.employee.firstname} {a.employee.lastname}</span>
+                  <span className="text-muted-foreground">{a.employeeId}</span>
+                </div>
+              ))}
+            {selectedIds.length === 0 && <div>No records selected.</div>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={selectedIds.length === 0 || deleteManyAttendance.isPending}
+              onClick={() => deleteManyAttendance.mutate({ ids: selectedIds })}
+            >
+              {deleteManyAttendance.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

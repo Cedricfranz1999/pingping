@@ -582,7 +582,7 @@ export default function ImprovedHomePage() {
       </Dialog>
 
       {/* Contact / Message Section */}
-      <section className="bg-gray-50 py-20" id="message">
+      <section className="bg-gray-50 py-20" id="contact">
         <div className="mx-auto max-w-7xl px-6" id="inquire">
           <motion.div
             initial="initial"
