@@ -11,10 +11,11 @@ export const employeeRouter = createTRPCRouter({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(10),
         includeInactive: z.boolean().optional().default(false),
+        status: z.enum(["all", "active", "inactive"]).optional(),
       }),
     )
     .query(async ({ input }) => {
-      const { search, page, limit, includeInactive } = input;
+      const { search, page, limit, includeInactive, status } = input;
       const skip = (page - 1) * limit;
 
       // Base filter by search only
@@ -29,10 +30,20 @@ export const employeeRouter = createTRPCRouter({
           }
         : {};
 
-      // Where for the list itself: include inactive only when requested
-      const where = includeInactive ? whereBase : { ...whereBase, isactive: true };
+      // Where for the list itself: use explicit status when provided, otherwise fallback to includeInactive flag
+      let where: Record<string, unknown> = whereBase;
+      if (status === "active") {
+        where = { ...whereBase, OR: [{ isactive: true }, { isactive: null }] };
+      } else if (status === "inactive") {
+        where = { ...whereBase, isactive: false };
+      } else if (status === "all") {
+        where = { ...whereBase };
+      } else {
+        // legacy behavior
+        where = includeInactive ? whereBase : { ...whereBase, isactive: true };
+      }
 
-      const [employees, total, activeTotal, inactiveTotal] = await Promise.all([
+      const [employees, total, activeTotal, inactiveTotal, overallTotal] = await Promise.all([
         db.employee.findMany({
           where,
           skip,
@@ -46,6 +57,8 @@ export const employeeRouter = createTRPCRouter({
         db.employee.count({
           where: { ...whereBase, isactive: false },
         }),
+        // Overall total employees (ignores filters), used for the dashboard card
+        db.employee.count({}),
       ]);
 
       return {
@@ -53,6 +66,7 @@ export const employeeRouter = createTRPCRouter({
         total,
         activeTotal,
         inactiveTotal,
+        overallTotal,
         pages: Math.ceil(total / limit),
         currentPage: page,
       };

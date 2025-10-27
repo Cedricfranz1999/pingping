@@ -41,23 +41,21 @@ const toText = (v: unknown): string => {
   return "";
 };
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Switch } from "~/components/ui/switch";
+// import { Switch } from "~/components/ui/switch";
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogCancel,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+//   AlertDialogTrigger,
+// } from "~/components/ui/alert-dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
-import {
-  Search,
   Plus,
   Edit,
-  Trash2,
   UserCheck,
   UserX,
   Settings,
@@ -95,6 +93,7 @@ const EmployeePage = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [selectedEmployeeForQr, setSelectedEmployeeForQr] = useState<Employee | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive">("active");
 
   const {
     data: employeeData,
@@ -104,7 +103,7 @@ const EmployeePage = () => {
     search: searchTerm || undefined,
     page: currentPage,
     limit: 10,
-    includeInactive: false,
+    status: statusFilter,
   });
 
   const createMutation = api.employee.create.useMutation({
@@ -147,23 +146,7 @@ const EmployeePage = () => {
     },
   });
 
-  const deleteMutation = api.employee.delete.useMutation({
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Employee deleted successfully",
-        variant: "default",
-      });
-      refetch();
-    },
-    onError: (error: { message: any }) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Delete disabled per request (use deactivate/activate only)
 
   const toggleActiveMutation = api.employee.toggleActive.useMutation({
     onSuccess: () => {
@@ -313,14 +296,7 @@ const EmployeePage = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (id?: unknown) => {
-    const numId = typeof id === "number" ? id : typeof id === "string" ? Number(id) : NaN;
-    if (Number.isNaN(numId)) {
-      toast({ title: "Error", description: "Invalid employee id", variant: "destructive" });
-      return;
-    }
-    deleteMutation.mutate({ id: numId });
-  };
+  // const handleDelete = (id?: unknown) => {};
 
   const handleToggleActive = (id: number, isactive: boolean) => {
     toggleActiveMutation.mutate({ id, isactive: !isactive });
@@ -331,7 +307,7 @@ const EmployeePage = () => {
   };
 
   const employees = employeeData?.employees || [];
-  const totalEmployees = employeeData?.total || 0;
+  const totalEmployees = employeeData?.overallTotal || 0;
   const activeEmployeesTotal = employeeData?.activeTotal || 0;
   const inactiveEmployeesTotal = employeeData?.inactiveTotal || 0;
   const handleGenerateQr = (employee: Employee) => {
@@ -385,7 +361,7 @@ const EmployeePage = () => {
         </h1>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
         <Card className="border-[#f8610e]/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-[#f8610e]">
@@ -430,20 +406,7 @@ const EmployeePage = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-[#f8610e]/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-[#f8610e]">
-              Search Results
-            </CardTitle>
-            <Search className="h-4 w-4 text-[#f8610e]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-[#f8610e]">
-              {employees.length}
-            </div>
-            <p className="text-muted-foreground text-xs">on this page</p>
-          </CardContent>
-        </Card>
+        {/* Search Results card removed per request */}
       </div>
 
       <div className="grid gap-4 md:gap-8">
@@ -624,7 +587,7 @@ const EmployeePage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-4">
               <div className="flex-1">
                 <Input
                   placeholder="Search by name, username, or address..."
@@ -635,6 +598,32 @@ const EmployeePage = () => {
                   }}
                   className="max-w-md"
                 />
+              </div>
+              <div className="w-full lg:w-auto">
+                <div className="inline-flex rounded-md shadow-sm" role="group">
+                  <Button
+                    type="button"
+                    variant={statusFilter === "active" ? "default" : "outline"}
+                    className={statusFilter === "active" ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
+                    onClick={() => {
+                      setStatusFilter("active");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Active
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={statusFilter === "inactive" ? "default" : "outline"}
+                    className={statusFilter === "inactive" ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
+                    onClick={() => {
+                      setStatusFilter("inactive");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Deactivated
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -736,42 +725,7 @@ const EmployeePage = () => {
                             </span>
                           )}
                         </Button>
-                        {/* Keep permissions control hidden */}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-[#f8610e]/20 bg-transparent hover:bg-[#f8610e]/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="ml-1">Delete</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-[#f8610e]">
-                                Delete Employee
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete {employee.firstname} {employee.lastname}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(Number(employee.id))}
-                                className="bg-[#f8610e] hover:bg-[#f8610e]/90"
-                                disabled={deleteMutation.isPending}
-                              >
-                                {deleteMutation.isPending && (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {/* Delete hidden per request */}
                       </div>
                     </TableCell>
                   </TableRow>
