@@ -285,7 +285,7 @@ const ReportsPage = () => {
                     <span>Active Product</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <Button
                     onClick={handleExportProductsCSV}
                     disabled={exportProductsMutation.isPending}
@@ -302,8 +302,8 @@ const ReportsPage = () => {
                   </Button>
                   <div className="rounded-xl bg-blue-500 p-3 shadow-lg transition-transform group-hover:scale-110">
                     <Package className="h-8 w-8 text-white" />
-                  </div>
-                </div>
+                  </div> */}
+                {/* </div> */}
               </div>
             </CardContent>
           </Card>
