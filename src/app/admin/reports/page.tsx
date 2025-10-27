@@ -324,7 +324,7 @@ const ReportsPage = () => {
                     <span>Total records</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <Button
                     onClick={handleExportAttendanceCSV}
                     disabled={exportAttendanceMutation.isPending}
@@ -341,8 +341,8 @@ const ReportsPage = () => {
                   </Button>
                   <div className="rounded-xl bg-green-500 p-3 shadow-lg transition-transform group-hover:scale-110">
                     <ClipboardList className="h-8 w-8 text-white" />
-                  </div>
-                </div>
+                  </div> */}
+                {/* </div> */}
               </div>
             </CardContent>
           </Card>
