@@ -884,7 +884,7 @@ export default function ImprovedHomePage() {
             <div>
               <h4 className="mb-4 font-semibold">Contact Info</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Cebu City, Philippines</li>
+                <li>Calbayog City, Philippines</li>
                 <li>+63 32 123 4567</li>
                 <li>info@pingspingtinapa.com</li>
               </ul>
