@@ -10,14 +10,15 @@ export const employeeRouter = createTRPCRouter({
         search: z.string().optional(),
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(10),
+        includeInactive: z.boolean().optional().default(false),
       }),
     )
     .query(async ({ input }) => {
-      const { search, page, limit } = input;
+      const { search, page, limit, includeInactive } = input;
       const skip = (page - 1) * limit;
 
-      // Include both active and inactive employees so admins can re-activate accounts
-      const where = search
+      // Base filter by search only
+      const whereBase = search
         ? {
             OR: [
               { firstname: { contains: search, mode: "insensitive" as const } },
@@ -28,7 +29,10 @@ export const employeeRouter = createTRPCRouter({
           }
         : {};
 
-      const [employees, total] = await Promise.all([
+      // Where for the list itself: include inactive only when requested
+      const where = includeInactive ? whereBase : { ...whereBase, isactive: true };
+
+      const [employees, total, activeTotal, inactiveTotal] = await Promise.all([
         db.employee.findMany({
           where,
           skip,
@@ -36,11 +40,19 @@ export const employeeRouter = createTRPCRouter({
           orderBy: { createdAt: "desc" },
         }),
         db.employee.count({ where }),
+        db.employee.count({
+          where: { ...whereBase, OR: [{ isactive: true }, { isactive: null }] },
+        }),
+        db.employee.count({
+          where: { ...whereBase, isactive: false },
+        }),
       ]);
 
       return {
         employees,
         total,
+        activeTotal,
+        inactiveTotal,
         pages: Math.ceil(total / limit),
         currentPage: page,
       };

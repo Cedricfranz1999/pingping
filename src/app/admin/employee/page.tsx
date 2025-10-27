@@ -104,6 +104,7 @@ const EmployeePage = () => {
     search: searchTerm || undefined,
     page: currentPage,
     limit: 10,
+    includeInactive: false,
   });
 
   const createMutation = api.employee.create.useMutation({
@@ -331,8 +332,8 @@ const EmployeePage = () => {
 
   const employees = employeeData?.employees || [];
   const totalEmployees = employeeData?.total || 0;
-  const activeEmployees = employees.filter((emp: { isactive: any; }) => emp.isactive).length;
-  const modifyEmployees = employees.filter((emp: { canModify: any; }) => emp.canModify).length;
+  const activeEmployeesTotal = employeeData?.activeTotal || 0;
+  const inactiveEmployeesTotal = employeeData?.inactiveTotal || 0;
   const handleGenerateQr = (employee: Employee) => {
     setSelectedEmployeeForQr(employee);
     setIsQrDialogOpen(true);
@@ -401,10 +402,33 @@ const EmployeePage = () => {
             </p> */}
           </CardContent>
         </Card>
+        <Card className="border-[#f8610e]/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-[#f8610e]">
+              Active Employees
+            </CardTitle>
+            <UserCheck className="h-4 w-4 text-[#f8610e]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-[#f8610e]">
+              {activeEmployeesTotal}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Hidden: Active Employees card per request */}
-
-        {/* Hidden: Can Modify card per request */}
+        <Card className="border-[#f8610e]/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-[#f8610e]">
+              Inactive Employees
+            </CardTitle>
+            <UserX className="h-4 w-4 text-[#f8610e]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-[#f8610e]">
+              {inactiveEmployeesTotal}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border-[#f8610e]/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -622,8 +646,9 @@ const EmployeePage = () => {
             <CardTitle className="text-[#f8610e]">Employee List</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
+            <div className="w-full overflow-x-auto">
+              <Table className="min-w-[1000px]">
+                <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Username</TableHead>
@@ -752,7 +777,8 @@ const EmployeePage = () => {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
