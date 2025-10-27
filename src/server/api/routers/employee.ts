@@ -16,9 +16,9 @@ export const employeeRouter = createTRPCRouter({
       const { search, page, limit } = input;
       const skip = (page - 1) * limit;
 
+      // Include both active and inactive employees so admins can re-activate accounts
       const where = search
         ? {
-            isactive: true,
             OR: [
               { firstname: { contains: search, mode: "insensitive" as const } },
               { lastname: { contains: search, mode: "insensitive" as const } },
@@ -26,7 +26,7 @@ export const employeeRouter = createTRPCRouter({
               { address: { contains: search, mode: "insensitive" as const } },
             ],
           }
-        : { isactive: true };
+        : {};
 
       const [employees, total] = await Promise.all([
         db.employee.findMany({

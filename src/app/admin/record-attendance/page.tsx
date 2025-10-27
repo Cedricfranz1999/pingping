@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Checkbox } from "~/components/ui/checkbox";
+// import { Checkbox } from "~/components/ui/checkbox";
 
 const AttendancePage: NextPage = () => {
   type AttendanceItem = {
@@ -288,33 +288,33 @@ const AttendancePage: NextPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">
+                {/* <TableHead className="w-10">
                   <Checkbox
                     checked={allOnPageSelected}
                     onCheckedChange={toggleSelectAllOnPage}
                     aria-label="Select all on page"
                   />
-                </TableHead>
+                </TableHead> */}
                 <TableHead>Attendance ID</TableHead>
                 <TableHead>Employee ID</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Time In</TableHead>
                 <TableHead>Time Out</TableHead>
-                <TableHead>Status</TableHead>
+                {/* <TableHead>Status</TableHead> */}
                 {/* <TableHead className="text-right">Actions</TableHead> */}
               </TableRow>
             </TableHeader>
             <TableBody>
               {attendances?.map((attendance: AttendanceItem) => (
                 <TableRow key={attendance.id}>
-                  <TableCell>
+                  {/* <TableCell>
                     <Checkbox
                       checked={selectedIds.includes(attendance.id)}
                       onCheckedChange={() => toggleSelect(attendance.id)}
                       aria-label={`Select attendance ${attendance.id}`}
                     />
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>{attendance.id}</TableCell>
                   <TableCell>{attendance.employeeId}</TableCell>
                   <TableCell>

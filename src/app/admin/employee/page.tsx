@@ -57,7 +57,6 @@ import {
   Search,
   Plus,
   Edit,
-  Trash2,
   UserCheck,
   UserX,
   Settings,
@@ -146,23 +145,7 @@ const EmployeePage = () => {
     },
   });
 
-  const deleteMutation = api.employee.delete.useMutation({
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Employee deleted successfully",
-        variant: "default",
-      });
-      refetch();
-    },
-    onError: (error: { message: any; }) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Delete removed in favor of deactivate/activate toggle
 
   const toggleActiveMutation = api.employee.toggleActive.useMutation({
     onSuccess: () => {
@@ -310,15 +293,7 @@ const EmployeePage = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (id?: unknown) => {
-    const numId = typeof id === "number" ? id : typeof id === "string" ? Number(id) : NaN;
-    if (Number.isNaN(numId)) {
-      toast({ title: "Error", description: "Invalid employee id", variant: "destructive" });
-      return;
-    }
-    console.log("employee.delete payload", { id: numId });
-    deleteMutation.mutate({ id: numId });
-  };
+  // Delete removed: use handleToggleActive instead
 
   const handleToggleActive = (id: number, isactive: boolean) => {
     toggleActiveMutation.mutate({ id, isactive: !isactive });
@@ -658,28 +633,13 @@ const EmployeePage = () => {
                     <TableCell>{employee.address}</TableCell>
                     <TableCell>{employee.gender}</TableCell>
                     <TableCell>
-                      {/* Always show Active as requested */}
-                      <Badge className="bg-[#f8610e] hover:bg-[#f8610e]/90">Active</Badge>
+                      <Badge
+                        variant={employee.isactive ? "default" : "secondary"}
+                        className={employee.isactive ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
+                      >
+                        {employee.isactive ? "Active" : "Inactive"}
+                      </Badge>
                     </TableCell>
-                    {/*
-                      Original dynamic Status and Permissions (hidden per request):
-                      <TableCell>
-                        <Badge
-                          variant={employee.isactive ? "default" : "secondary"}
-                          className={employee.isactive ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
-                        >
-                          {employee.isactive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={employee.canModify ? "default" : "outline"}
-                          className={employee.canModify ? "bg-[#f8610e] hover:bg-[#f8610e]/90" : ""}
-                        >
-                          {employee.canModify ? "Can Modify" : "Read Only"}
-                        </Badge>
-                      </TableCell>
-                    */}
                     <TableCell>
                       <div className="flex items-center gap-2">
                          <Button
@@ -700,90 +660,33 @@ const EmployeePage = () => {
                           <Edit className="h-4 w-4" />
                           <span className="ml-1">Edit</span>
                         </Button>
-                        {/*
-                          Hidden per request (Activate/Deactivate and Permissions):
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              handleToggleActive(
-                                employee.id,
-                                employee.isactive ?? true,
-                              )
-                            }
-                            className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
-                            disabled={toggleActiveMutation.isPending}
-                          >
-                            {toggleActiveMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : employee.isactive ? (
-                              <UserX className="h-4 w-4" />
-                            ) : (
-                              <UserCheck className="h-4 w-4" />
-                            )}
-                            {!toggleActiveMutation.isPending && (
-                              <span className="ml-1">
-                                {employee.isactive ? "Deactivate" : "Activate"}
-                              </span>
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              handleToggleModify(employee.id, employee.canModify)
-                            }
-                            className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
-                            disabled={toggleModifyMutation.isPending}
-                          >
-                            {toggleModifyMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Settings className="h-4 w-4" />
-                            )}
-                            {!toggleModifyMutation.isPending && (
-                              <span className="ml-1">Permissions</span>
-                            )}
-                          </Button>
-                        */}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-[#f8610e]/20 bg-transparent hover:bg-[#f8610e]/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="ml-1">Delete</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-[#f8610e]">
-                                Delete Employee
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete{" "}
-                                {employee.firstname} {employee.lastname}? This
-                                action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(Number(employee.id))}
-                                className="bg-[#f8610e] hover:bg-[#f8610e]/90"
-                                disabled={deleteMutation.isPending}
-                              >
-                                {deleteMutation.isPending && (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleToggleActive(
+                              employee.id,
+                              employee.isactive ?? true,
+                            )
+                          }
+                          className="border-[#f8610e]/20 hover:bg-[#f8610e]/10"
+                          disabled={toggleActiveMutation.isPending}
+                        >
+                          {toggleActiveMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : employee.isactive ? (
+                            <UserX className="h-4 w-4" />
+                          ) : (
+                            <UserCheck className="h-4 w-4" />
+                          )}
+                          {!toggleActiveMutation.isPending && (
+                            <span className="ml-1">
+                              {employee.isactive ? "Deactivate" : "Activate"}
+                            </span>
+                          )}
+                        </Button>
+                        {/* Keep permissions control hidden */}
+                        {/* Delete action removed: use Deactivate/Activate instead */}
                       </div>
                     </TableCell>
                   </TableRow>
