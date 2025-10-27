@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "~/components/ui/button";
+import { SocialButtons } from "~/components/social-buttons";
 import { Card, CardContent } from "~/components/ui/card";
 import {
   Dialog,
@@ -850,22 +851,10 @@ export default function ImprovedHomePage() {
                 Preserving the authentic taste of Filipino tinapa for over 25
                 years. Made with love, served with pride.
               </p>
-              <div className="flex space-x-4">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-600 bg-transparent text-gray-400 hover:bg-[#f8610e] hover:text-white"
-                >
-                  Facebook
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-600 bg-transparent text-gray-400 hover:bg-[#f8610e] hover:text-white"
-                >
-                  Instagram
-                </Button>
-              </div>
+              <SocialButtons
+                facebookUrl="https://www.facebook.com/share/1GHDtjUBvy/"
+                instagramUrl="https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.instagram.com%2Fpingpingstinapa%3Figsh%3DMXVweDRxNGplb3Qxcg%253D%253D%26fbclid%3DIwZXh0bgNhZW0CMTAAYnJpZBExYW1nT0x5NFRxcXBscWVZVwEegxJE_g2zbZb-3CkDaSNT5W2ULsFKszbqrRzCKJchvHCT-vOKpqXd43rTbS4_aem_GdIcNrxkJETEziWjChSVgg&h=AT26Zzp67mUpEC8VuMCxDsIjg-JNX7xhpYywtbpbLo_jYJkdO8XTmcP4_-qL8XhScMIj48CCz81RMlY_cVXVUWSTanijgJbszon3ZYXtSlkC5KpSf_rO8XIpHmOdgLvQfBiIPHWLVTZhBJUzf5S_MQ"
+              />
             </div>
             <div>
               <h4 className="mb-4 font-semibold">Quick Links</h4>
