@@ -86,12 +86,15 @@ export const employeeRouter = createTRPCRouter({
     .input(
       z.object({
         image: z.string().optional(),
-        firstname: z.string().min(1, "First name is required"),
-        middlename: z.string().optional(),
-        lastname: z.string().min(1, "Last name is required"),
-        username: z.string().min(3, "Username must be at least 3 characters"),
+        firstname: z.string().trim().min(1, "First name is required"),
+        middlename: z.string().trim().optional(),
+        lastname: z.string().trim().min(1, "Last name is required"),
+        username: z
+          .string()
+          .trim()
+          .min(3, "Username must be at least 3 characters"),
         password: z.string().min(6, "Password must be at least 6 characters"),
-        address: z.string().min(1, "Address is required"),
+        address: z.string().trim().min(1, "Address is required"),
         gender: z.enum(["Male", "Female", "Other"]),
         isactive: z.boolean().default(true),
         canModify: z.boolean().default(false),
@@ -99,10 +102,27 @@ export const employeeRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const { password, ...rest } = input;
-      const passwordHash = await bcryptHash(password, 10);
-      return await db.employee.create({
-        data: { ...rest, password: passwordHash },
+      // Pre-check duplicate username for clearer error message
+      const existing = await db.employee.findUnique({
+        where: { username: rest.username },
       });
+      if (existing) {
+        throw new Error("Username already exists");
+      }
+
+      const passwordHash = await bcryptHash(password, 10);
+      try {
+        return await db.employee.create({
+          data: { ...rest, password: passwordHash },
+        });
+      } catch (e: unknown) {
+        const anyErr = e as { code?: string; message?: string };
+        if (anyErr?.code === "P2002") {
+          // Prisma unique constraint violation
+          throw new Error("Username already exists");
+        }
+        throw e;
+      }
     }),
 
   // Update employee
@@ -111,12 +131,15 @@ export const employeeRouter = createTRPCRouter({
       z.object({
         id: z.number(),
         image: z.string().optional(),
-        firstname: z.string().min(1, "First name is required"),
-        middlename: z.string().optional(),
-        lastname: z.string().min(1, "Last name is required"),
-        username: z.string().min(3, "Username must be at least 3 characters"),
+        firstname: z.string().trim().min(1, "First name is required"),
+        middlename: z.string().trim().optional(),
+        lastname: z.string().trim().min(1, "Last name is required"),
+        username: z
+          .string()
+          .trim()
+          .min(3, "Username must be at least 3 characters"),
         password: z.string().min(6, "Password must be at least 6 characters"),
-        address: z.string().min(1, "Address is required"),
+        address: z.string().trim().min(1, "Address is required"),
         gender: z.enum(["Male", "Female", "Other"]),
         isactive: z.boolean(),
         canModify: z.boolean(),
@@ -124,11 +147,28 @@ export const employeeRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const { id, password, ...rest } = input;
-      const passwordHash = await bcryptHash(password, 10);
-      return await db.employee.update({
-        where: { id },
-        data: { ...rest, password: passwordHash },
+
+      // If username is changing, ensure it's not taken by another employee
+      const existing = await db.employee.findUnique({
+        where: { username: rest.username },
       });
+      if (existing && existing.id !== id) {
+        throw new Error("Username already exists");
+      }
+
+      const passwordHash = await bcryptHash(password, 10);
+      try {
+        return await db.employee.update({
+          where: { id },
+          data: { ...rest, password: passwordHash },
+        });
+      } catch (e: unknown) {
+        const anyErr = e as { code?: string; message?: string };
+        if (anyErr?.code === "P2002") {
+          throw new Error("Username already exists");
+        }
+        throw e;
+      }
     }),
 
   // Delete employee (soft delete to avoid FK violations)

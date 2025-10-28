@@ -264,10 +264,14 @@ const EmployeePage = () => {
     e.preventDefault();
     const submitData = {
       ...formData,
-      image: formData.image || undefined,
-      middlename: formData.middlename || undefined,
+      image: (formData.image || "").trim() || undefined,
+      firstname: formData.firstname.trim(),
+      middlename: formData.middlename.trim() || undefined,
+      lastname: formData.lastname.trim(),
+      username: formData.username.trim(),
+      address: formData.address.trim(),
       // Ensure gender matches API enum
-      gender: (formData.gender as "Male" | "Female" | "Other"),
+      gender: formData.gender as "Male" | "Female" | "Other",
       // Force new employees to be active as requested
       isactive: true,
     };
