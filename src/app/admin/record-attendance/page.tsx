@@ -10,6 +10,7 @@ import { api } from "~/trpc/react";
 // shadcn/ui imports
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Badge } from "~/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -301,7 +302,7 @@ const AttendancePage: NextPage = () => {
                 <TableHead>Date</TableHead>
                 <TableHead>Time In</TableHead>
                 <TableHead>Time Out</TableHead>
-                {/* <TableHead>Status</TableHead> */}
+                <TableHead>Status</TableHead>
                 {/* <TableHead className="text-right">Actions</TableHead> */}
               </TableRow>
             </TableHeader>
@@ -334,8 +335,12 @@ const AttendancePage: NextPage = () => {
                       ? format(attendance.timeOut, "hh:mm a")
                       : "-"}
                   </TableCell>
-                  {/* <TableCell>{attendance.status || "-"}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
+                    <Badge variant={getStatusVariant(attendance.status || undefined)}>
+                      {attendance.status || "-"}
+                    </Badge>
+                  </TableCell>
+                  {/* <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -606,39 +611,22 @@ const AttendancePage: NextPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-red-600">Delete Record</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete attendance record for{" "}
-              <span className="font-semibold">
-                {selectedAttendance?.employee.firstname}{" "}
-                {selectedAttendance?.employee.lastname}
-              </span>
-              ? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteAttendance.isPending}
-            >
-              {deleteAttendance.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/** Delete Confirmation Modal removed per request **/}
     </>
   );
 };
 
 export default AttendancePage;
+// Map status to badge variant
+function getStatusVariant(status?: string) {
+  switch (status) {
+    case "EXACT_TIME":
+      return "default" as const;
+    case "OVERTIME":
+      return "secondary" as const;
+    case "UNDERTIME":
+      return "destructive" as const;
+    default:
+      return "outline" as const;
+  }
+}

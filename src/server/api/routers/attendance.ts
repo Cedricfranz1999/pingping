@@ -107,7 +107,7 @@ export const attendanceRouter = createTRPCRouter({
           // Update existing record
           updatedAttendance = await db.attendance.update({
             where: { id: existingAttendance.id },
-            data: { timeIn: new Date() },
+            data: { timeIn: new Date(), status: calculateStatus(new Date(), "TIME_IN") },
           });
         } else {
           // Create new record
@@ -115,6 +115,7 @@ export const attendanceRouter = createTRPCRouter({
             data: {
               employeeId,
               timeIn: new Date(),
+              status: calculateStatus(new Date(), "TIME_IN"),
               date: today,
             },
           });
@@ -131,7 +132,7 @@ export const attendanceRouter = createTRPCRouter({
 
         updatedAttendance = await db.attendance.update({
           where: { id: existingAttendance.id },
-          data: { timeOut: new Date() },
+          data: { timeOut: new Date(), status: calculateStatus(new Date(), "TIME_OUT", existingAttendance.timeIn ?? undefined) },
         });
       }
 
@@ -193,3 +194,36 @@ export const attendanceRouter = createTRPCRouter({
       };
     }),
 });
+
+function calculateStatus(
+  time: Date,
+  type: "TIME_IN" | "TIME_OUT",
+  timeIn?: Date | null,
+): "OVERTIME" | "UNDERTIME" | "EXACT_TIME" {
+  const makeAt = (base: Date, h: number): number => {
+    const d = new Date(base);
+    d.setHours(h, 0, 0, 0);
+    return d.getTime();
+  };
+
+  const t = time.getTime();
+
+  if (type === "TIME_IN") {
+    const isEvening = time.getHours() >= 12;
+    const start = makeAt(time, isEvening ? 18 : 8);
+    if (t === start) return "EXACT_TIME";
+    if (t > start) return "UNDERTIME";
+    return "OVERTIME";
+  } else {
+    let isEvening: boolean;
+    if (timeIn) {
+      isEvening = timeIn.getHours() >= 12;
+    } else {
+      isEvening = time.getHours() >= 12;
+    }
+    const end = makeAt(time, isEvening ? 22 : 18);
+    if (t === end) return "EXACT_TIME";
+    if (t > end) return "OVERTIME";
+    return "UNDERTIME";
+  }
+}

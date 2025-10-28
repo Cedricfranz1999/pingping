@@ -666,6 +666,8 @@ export default function ImprovedHomePage() {
                       <p className="text-gray-600">
                         Monday - Saturday: 8:00 AM - 6:00 PM
                         <br />
+                         6:00 PM - 10:00 PM
+                        <br />
                         Sunday: 9:00 AM - 4:00 PM
                       </p>
                     </div>

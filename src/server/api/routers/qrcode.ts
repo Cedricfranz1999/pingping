@@ -164,32 +164,37 @@ function calculateStatus(
   type: "TIME_IN" | "TIME_OUT",
   timeIn?: Date | null,
 ): "OVERTIME" | "UNDERTIME" | "EXACT_TIME" {
-  // Define standard working hours (9 AM to 5 PM)
-  const standardStart = new Date(time);
-  standardStart.setHours(9, 0, 0, 0);
+  // Shifts:
+  // - Day shift: 8:00 AM start, 6:00 PM end
+  // - Evening shift: 6:00 PM start, 10:00 PM end
 
-  const standardEnd = new Date(time);
-  standardEnd.setHours(17, 0, 0, 0);
+  const makeAt = (base: Date, h: number): number => {
+    const d = new Date(base);
+    d.setHours(h, 0, 0, 0);
+    return d.getTime();
+  };
+
+  const t = time.getTime();
 
   if (type === "TIME_IN") {
-    // Compare time in with standard start time
-    const diffMs = time.getTime() - standardStart.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-
-    if (diffMins > 15) return "UNDERTIME"; // Late arrival
-    if (diffMins < -15) return "OVERTIME"; // Early arrival
-    return "EXACT_TIME";
+    // Choose baseline start by current time (morning vs evening shift)
+    const isEvening = time.getHours() >= 12; // 12:00 onwards considered evening shift start (6 PM)
+    const start = makeAt(time, isEvening ? 18 : 8);
+    if (t === start) return "EXACT_TIME";
+    if (t > start) return "UNDERTIME"; // Late after start
+    return "OVERTIME"; // Early before start
   } else {
-    // TIME_OUT - need timeIn to calculate proper status
-    if (!timeIn) return "EXACT_TIME";
-
-    // Calculate total worked hours
-    const workedMs = time.getTime() - timeIn.getTime();
-    const standardWorkMs = standardEnd.getTime() - standardStart.getTime();
-
-    // Compare with standard 8 hours
-    if (workedMs < standardWorkMs - 15 * 60 * 1000) return "UNDERTIME"; // Worked less
-    if (workedMs > standardWorkMs + 15 * 60 * 1000) return "OVERTIME"; // Worked more
-    return "EXACT_TIME";
+    // TIME_OUT: determine shift end using timeIn if available
+    let isEvening: boolean;
+    if (timeIn) {
+      isEvening = timeIn.getHours() >= 12; // time-in 12:00+ implies evening shift
+    } else {
+      // Fallback by current time
+      isEvening = time.getHours() >= 12;
+    }
+    const end = makeAt(time, isEvening ? 22 : 18);
+    if (t === end) return "EXACT_TIME";
+    if (t > end) return "OVERTIME"; // Beyond end is overtime
+    return "UNDERTIME"; // Before end is undertime
   }
 }

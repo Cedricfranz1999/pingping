@@ -142,10 +142,12 @@ export const attendanceRecordRouter = createTRPCRouter({
         throw new Error("Employee already checked in today");
       }
 
+      const now = new Date();
       return await db.attendance.create({
         data: {
           employeeId: input.employeeId,
-          timeIn: new Date(),
+          timeIn: now,
+          status: calculateStatus(now, "TIME_IN"),
         },
       });
     }),
@@ -175,10 +177,12 @@ export const attendanceRecordRouter = createTRPCRouter({
         throw new Error("Employee already checked out today");
       }
 
+      const now = new Date();
       return await db.attendance.update({
         where: { id: attendance.id },
         data: {
-          timeOut: new Date(),
+          timeOut: now,
+          status: calculateStatus(now, "TIME_OUT", attendance.timeIn ?? undefined),
         },
       });
     }),
@@ -247,3 +251,37 @@ export const attendanceRecordRouter = createTRPCRouter({
       return { csv: rows.join("\n") };
     }),
 });
+
+function calculateStatus(
+  time: Date,
+  type: "TIME_IN" | "TIME_OUT",
+  timeIn?: Date | null,
+): "OVERTIME" | "UNDERTIME" | "EXACT_TIME" {
+  // Shifts: Day 8:00-18:00, Evening 18:00-22:00
+  const makeAt = (base: Date, h: number): number => {
+    const d = new Date(base);
+    d.setHours(h, 0, 0, 0);
+    return d.getTime();
+  };
+
+  const t = time.getTime();
+
+  if (type === "TIME_IN") {
+    const isEvening = time.getHours() >= 12;
+    const start = makeAt(time, isEvening ? 18 : 8);
+    if (t === start) return "EXACT_TIME";
+    if (t > start) return "UNDERTIME";
+    return "OVERTIME";
+  } else {
+    let isEvening: boolean;
+    if (timeIn) {
+      isEvening = timeIn.getHours() >= 12;
+    } else {
+      isEvening = time.getHours() >= 12;
+    }
+    const end = makeAt(time, isEvening ? 22 : 18);
+    if (t === end) return "EXACT_TIME";
+    if (t > end) return "OVERTIME";
+    return "UNDERTIME";
+  }
+}
