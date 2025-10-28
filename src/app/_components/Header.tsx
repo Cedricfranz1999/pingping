@@ -259,11 +259,11 @@ const handleLogout = () => {
               </div>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-[#f8610e]/20" />
+          {/* <DropdownMenuSeparator className="bg-[#f8610e]/20" />
           <DropdownMenuItem className="mx-1 cursor-pointer rounded-lg text-gray-700 hover:bg-[#f8610e]/10 hover:text-[#f8610e]">
             <Settings className="mr-3 h-4 w-4" />
             Settings
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
           <DropdownMenuSeparator className="bg-[#f8610e]/20" />
           <DropdownMenuItem
             className="mx-1 cursor-pointer rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700"

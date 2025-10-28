@@ -200,30 +200,33 @@ function calculateStatus(
   type: "TIME_IN" | "TIME_OUT",
   timeIn?: Date | null,
 ): "OVERTIME" | "UNDERTIME" | "EXACT_TIME" {
-  const makeAt = (base: Date, h: number): number => {
-    const d = new Date(base);
-    d.setHours(h, 0, 0, 0);
-    return d.getTime();
-  };
+  const hour = time.getHours();
+  const minute = time.getMinutes();
 
-  const t = time.getTime();
+  const isNightShift = (() => {
+    if (type === "TIME_IN") {
+      // Night shift time-in starts at or after 18:00
+      return hour >= 18;
+    }
+    // For time-out, prefer the recorded time-in to infer shift
+    if (timeIn) {
+      return timeIn.getHours() >= 18;
+    }
+    // Fallback: if current time is at/after 22:00, assume night shift; else day
+    return hour >= 22;
+  })();
+
+  const startHour = isNightShift ? 18 : 8; // 6:00 PM or 8:00 AM
+  const endHour = isNightShift ? 22 : 18;  // 10:00 PM or 6:00 PM
 
   if (type === "TIME_IN") {
-    const isEvening = time.getHours() >= 12;
-    const start = makeAt(time, isEvening ? 18 : 8);
-    if (t === start) return "EXACT_TIME";
-    if (t > start) return "UNDERTIME";
-    return "OVERTIME";
-  } else {
-    let isEvening: boolean;
-    if (timeIn) {
-      isEvening = timeIn.getHours() >= 12;
-    } else {
-      isEvening = time.getHours() >= 12;
-    }
-    const end = makeAt(time, isEvening ? 22 : 18);
-    if (t === end) return "EXACT_TIME";
-    if (t > end) return "OVERTIME";
-    return "UNDERTIME";
+    if (hour === startHour && minute === 0) return "EXACT_TIME";
+    if (hour > startHour || (hour === startHour && minute > 0)) return "UNDERTIME"; // late
+    return "OVERTIME"; // early in
   }
+
+  // TIME_OUT
+  if (hour === endHour && minute === 0) return "EXACT_TIME";
+  if (hour > endHour || (hour === endHour && minute > 0)) return "OVERTIME"; // extended
+  return "UNDERTIME"; // early out
 }
