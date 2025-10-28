@@ -698,7 +698,7 @@ const ReportsPage = () => {
               </div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
+                  {/* <Button
                     variant="outline"
                     className={cn(
                       "justify-start rounded-xl border-gray-200 text-left font-normal",
@@ -717,7 +717,7 @@ const ReportsPage = () => {
                     ) : (
                       <span>Filter date</span>
                     )}
-                  </Button>
+                  </Button> */}
                 </PopoverTrigger>
                 <PopoverContent className="w-auto rounded-xl p-0">
                   <Calendar
