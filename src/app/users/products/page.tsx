@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ShoppingCart, Heart, Plus, Minus } from 'lucide-react';
+import { Search, Filter, ShoppingCart, Heart, Plus, Minus, Star } from 'lucide-react';
 import { api } from '~/trpc/react';
 import Image from 'next/image';
 import { useAuthStore } from '~/app/store/auth-store';
@@ -53,6 +53,29 @@ const ProductsPage = () => {
   );
 
   const { data: categories } = api.product.getCategories.useQuery();
+
+  // Ratings for current page products
+  const pageProductIds = (productsData?.products ?? []).map((p: any) => p.id as number);
+  const { data: ratingsMap } = api.product.getRatingsByProductIds.useQuery(
+    { productIds: pageProductIds },
+    { enabled: pageProductIds.length > 0 }
+  );
+
+  const StarRow = ({ average, count }: { average: number; count?: number }) => {
+    const full = Math.floor(average);
+    const stars = Array.from({ length: 5 }, (_, i) => i < full);
+    return (
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center">
+          {stars.map((filled, idx) => (
+            <Star key={idx} className={filled ? 'h-4 w-4 text-yellow-500 fill-yellow-500' : 'h-4 w-4 text-gray-300'} />
+          ))}
+        </div>
+        <span className="font-medium">{average.toFixed(1)}</span>
+        {typeof count === 'number' && <span className="text-gray-400">({count})</span>}
+      </div>
+    );
+  };
 
   // Add to cart mutation
   const addToCartMutation = api.ordersProduct.addToCart.useMutation({
@@ -319,11 +342,14 @@ const ProductsPage = () => {
                     </button>
                   </div>
                   
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                    
-                    <div className="flex items-center justify-between">
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                  <div className="mb-2">
+                    <StarRow average={ratingsMap?.[product.id]?.average ?? 0} count={ratingsMap?.[product.id]?.count ?? 0} />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold text-gray-900">₱{product.price}</span>
                       <button 
                         onClick={() => handleAddToCartClick(product)}

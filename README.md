@@ -27,3 +27,20 @@ You can check out the [create-t3-app GitHub repository](https://github.com/t3-os
 ## How do I deploy this?
 
 Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+
+## Product Ratings
+
+Per-product and per-variant ratings are supported.
+
+- Backend: `ProductRating` model added in `prisma/schema.prisma` with TRPC endpoints:
+  - `product.rateProduct` to submit ratings
+  - `product.getRatingsByProductIds` to fetch average and count per product
+- Frontend: ratings are displayed on:
+  - `src/app/page.tsx` for campaign product cards and variant rows
+  - `src/app/users/products/page.tsx` for the shop grid
+
+Database migration steps:
+
+1. Ensure `DATABASE_URL` is configured.
+2. Run: `npx prisma migrate dev -n add_product_rating`
+3. Optionally open `npx prisma studio` and add a few `ProductRating` rows to test.

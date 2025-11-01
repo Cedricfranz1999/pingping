@@ -32,6 +32,8 @@ model Product {
   description String
   stock       Int
   price       String
+  /// Variant or size label to distinguish similar products (e.g., "250g", "Large")
+  size        String            @default("REGULAR")
   productType ProductType
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -39,6 +41,7 @@ model Product {
   orderItems  OrderItem[]
   categories  ProductCategory[]
   logs        ProductLog[]
+  ratings     ProductRating[]
 }
 
 model User {
@@ -55,6 +58,7 @@ model User {
   username  String
   carts     Cart?
   orders    UserOrder[]
+  ratings   ProductRating[]
 
   @@index([email])
 }
@@ -128,7 +132,7 @@ model ProductLog {
   newStock   Int?
   newPrice   String?
   timestamp  DateTime      @default(now())
-  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee   Employee      @relation(fields: [employeeId], references: [id])
   product    Product       @relation(fields: [productId], references: [id])
 
   @@index([productId])
@@ -156,7 +160,7 @@ model Attendance {
   status     AttendanceStatus?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  employee   Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee   Employee          @relation(fields: [employeeId], references: [id])
 
   @@index([employeeId, date])
 }
@@ -188,6 +192,21 @@ model Feedback {
   star      Int
   feedback  String
   createdAt DateTime @default(now())
+}
+
+model ProductRating {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  userId    Int?
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([userId])
 }
 
 model Order {

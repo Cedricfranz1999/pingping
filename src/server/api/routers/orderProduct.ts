@@ -166,11 +166,12 @@ export const ordersProductRouter = createTRPCRouter({
     .input(z.object({ userId: z.number() }).optional())
     .query(async ({ input, ctx }) => {
       const userId = input?.userId; // safe optional access
+      // If a userId is provided, filter orders for that user.
+      // Otherwise (admin views), return all orders.
+      const where = userId !== undefined ? { userId } : {};
 
       const orders = await ctx.db.userOrder.findMany({
-        where: {
-          userId: undefined,
-        },
+        where,
         include: {
           orderItems: {
             include: {

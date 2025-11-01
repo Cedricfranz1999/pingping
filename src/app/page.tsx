@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import {
   MapPin,
   Phone,
@@ -77,8 +77,20 @@ export default function ImprovedHomePage() {
     description?: string | null;
     image?: string | null;
     price?: number | string;
+    variants?: any[];
+    baseName?: string;
   } | null>(null);
   const [isProductOpen, setIsProductOpen] = useState(false);
+  const utils = api.useUtils();
+  const rateMutation = api.product.rateProduct.useMutation({
+    onSuccess: async (_data, variables) => {
+      try {
+        await utils.product.getRatingsByProductIds.invalidate({ productIds: [variables.productId] });
+      } catch {}
+    },
+  });
+  const [ratingValue, setRatingValue] = useState<number>(0);
+  const [ratingComment, setRatingComment] = useState<string>("");
 
   const { data: products, isLoading: loadingTinapa } =
     api.product.getTinapaProducts.useQuery();
@@ -90,6 +102,228 @@ export default function ImprovedHomePage() {
     [products, pasalubongItems],
   );
   const loadingAll = loadingTinapa || loadingPasalubong;
+
+  // Ratings: fetch for all product ids once
+  const allProductIds = useMemo(() => (allProducts ?? []).map((p: any) => p.id as number), [allProducts]);
+  const { data: ratingsMap } = api.product.getRatingsByProductIds.useQuery(
+    { productIds: allProductIds },
+    { enabled: allProductIds.length > 0 }
+  );
+
+  const computeGroupRating = (variants: any[]) => {
+    if (!ratingsMap) return { avg: 0, count: 0 };
+    let total = 0;
+    let count = 0;
+    for (const v of variants) {
+      const r = ratingsMap[v.id as number];
+      if (r && r.count > 0) {
+        total += r.average * r.count;
+        count += r.count;
+      }
+    }
+    return { avg: count > 0 ? total / count : 0, count };
+  };
+
+  const StarRow = ({ average, count }: { average: number; count?: number }) => {
+    const full = Math.floor(average);
+    const stars = Array.from({ length: 5 }, (_, i) => i < full);
+    return (
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center">
+          {stars.map((filled, idx) => (
+            <Star key={idx} className={filled ? "h-4 w-4 text-yellow-500 fill-yellow-500" : "h-4 w-4 text-gray-300"} />
+          ))}
+        </div>
+        <span className="font-medium">{average.toFixed(1)}</span>
+        {typeof count === "number" && <span className="text-gray-400">({count})</span>}
+      </div>
+    );
+  };
+
+  // Group products by Category -> Product Name (variants inside)
+  const groupedByCategory = useMemo(() => {
+    const categoriesMap = new Map<string, Map<string, any[]>>();
+    for (const p of allProducts) {
+      const catNames = (p as any).categories?.map((c: any) => c.category?.name).filter(Boolean) as string[];
+      const names = catNames?.length ? catNames : ["Uncategorized"];
+      for (const cat of names) {
+        if (!categoriesMap.has(cat)) categoriesMap.set(cat, new Map());
+        const byName = categoriesMap.get(cat)!;
+        const key = (p as any).name?.trim().toLowerCase() ?? "";
+        const arr = byName.get(key) ?? [];
+        arr.push(p);
+        byName.set(key, arr);
+      }
+    }
+    // Convert to array [{category, items:[{name, variants:[]}, ...]}]
+    return Array.from(categoriesMap.entries()).map(([category, byName]) => ({
+      category,
+      items: Array.from(byName.entries()).map(([nameKey, variants]) => ({
+        name: (variants[0] as any)?.name ?? nameKey,
+        variants,
+      })),
+    }));
+  }, [allProducts]);
+
+  // Category filter state (top buttons)
+  const categoryList = useMemo(
+    () => [
+      "All",
+      ...Array.from(new Set(groupedByCategory.map((g) => g.category))),
+    ],
+    [groupedByCategory],
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  // Helpers to render product cards and sections
+  const formatPHP = (amount: number) =>
+    Number(amount || 0).toLocaleString("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    });
+
+  const renderProductCard = (name: string, variants: any[]) => {
+    const first = variants[0] as any;
+    const prices = variants
+      .map((v: any) => parseFloat(v.price))
+      .filter((n: number) => !Number.isNaN(n));
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const groupStats = computeGroupRating(variants);
+    return (
+      <Card
+        key={name}
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          // Default open first variant
+          setSelectedProduct({
+            id: first?.id ?? name,
+            name,
+            description: first?.description ?? "",
+            image: first?.image,
+            price: undefined, variants: variants, baseName: name,
+          });
+          setIsProductOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            setSelectedProduct({
+              id: first?.id ?? name,
+              name,
+              description: first?.description ?? "",
+              image: first?.image,
+              price: undefined, variants: variants, baseName: name,
+            });
+            setIsProductOpen(true);
+          }
+        }}
+        className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
+      >
+        <div className="relative h-56 w-full">
+          <Image src={first?.image || "/placeholder.svg"} alt={name} fill unoptimized className="object-cover" />
+        </div>
+        <CardContent className="flex flex-grow flex-col gap-3 p-6">
+          <h4 className="text-xl font-bold text-gray-900 line-clamp-1">{name}</h4>
+          <p className="text-sm leading-relaxed text-gray-600 line-clamp-3">{first?.description ?? ""}</p>
+          <StarRow average={groupStats.avg} count={groupStats.count} />
+          <div className="text-lg font-semibold text-[#f8610e]">
+            {prices.length === 0
+              ? formatPHP(0)
+              : prices.length > 1 && min !== max
+              ? `${formatPHP(min)} - ${formatPHP(max)}`
+              : formatPHP(prices[0] ?? 0)}
+          </div>
+          {variants.length > 1 && (
+            <div className="mt-2">
+              <div className="mb-1 text-xs font-medium text-gray-500">Variants</div>
+              <div className="grid grid-cols-2 gap-2">
+                {variants
+                  .sort((a: any, b: any) => (a.size || '').localeCompare(b.size || ''))
+                  .map((v: any) => (
+                    <button
+                      key={v.id}
+                      className="flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm hover:bg-orange-50"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedProduct({
+                          id: v.id,
+                          name: `${name} - ${(v.size || 'REGULAR').charAt(0) + (v.size || 'REGULAR').slice(1).toLowerCase()}`,
+                          description: v.description ?? '',
+                          image: v.image,
+                          price: v.price,
+                        });
+                        setIsProductOpen(true);
+                      }}
+                    >
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
+                          {(v.size || 'REGULAR').charAt(0) + (v.size || 'REGULAR').slice(1).toLowerCase()}
+                        </span>
+                        <div className="-ml-1"><StarRow average={ratingsMap?.[v.id]?.average ?? 0} /></div>
+                      </div>
+                      <span className="font-medium">{formatPHP(parseFloat(v.price))}</span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderAllPreview = () => (
+    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {flatProductGroups.slice(0, 6).map(({ name, variants }) => renderProductCard(name, variants))}
+    </div>
+  );
+
+  const renderCategory = (cat: string) => {
+    const group = groupedByCategory.find((g) => g.category === cat);
+    if (!group) return null;
+    return (
+      <div className="space-y-4" id={`cat-${cat}`}>
+        <h3 className="text-2xl font-bold text-[#6d2803]">{cat}</h3>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {group.items.map(({ name, variants }) => renderProductCard(name, variants))}
+        </div>
+      </div>
+    );
+  };
+
+  // Flatten unique product groups across all categories (by name)
+  const flatProductGroups = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; variants: any[]; first: any; categories: Set<string> }
+    >();
+    for (const { category, items } of groupedByCategory) {
+      for (const it of items) {
+        const key = (it.name ?? "").trim().toLowerCase();
+        const entry: {
+          name: string;
+          variants: any[];
+          first: any;
+          categories: Set<string>;
+        } = map.get(key) ?? {
+          name: it.name,
+          variants: [] as any[],
+          first: it.variants[0],
+          categories: new Set<string>(),
+        };
+        // merge variants (dedupe by id)
+        const existingIds = new Set(entry.variants.map((v: any) => v.id));
+        for (const v of it.variants) if (!existingIds.has(v.id)) entry.variants.push(v);
+        entry.categories.add(category);
+        if (!map.has(key)) map.set(key, entry);
+      }
+    }
+    return Array.from(map.values());
+  }, [groupedByCategory]);
 
   const formSchema = z.object({
     firstname: z.string().min(1, "First name is required"),
@@ -494,50 +728,23 @@ export default function ImprovedHomePage() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {allProducts.map(({ id, name, description, image, price }) => (
-              <Card
-                key={id}
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setSelectedProduct({ id, name, description: description ?? "", image, price });
-                  setIsProductOpen(true);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    setSelectedProduct({ id, name, description: description ?? "", image, price });
-                    setIsProductOpen(true);
-                  }
-                }}
-                className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
-              >
-                <div className="relative h-64 w-full">
-                  <Image
-                    src={image || "/placeholder.svg"}
-                    alt={name}
-                    fill
-                    unoptimized
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="flex flex-grow flex-col space-y-4 p-6">
-                  <h4 className="text-xl font-bold text-gray-900 line-clamp-1">{name}</h4>
+          <div className="space-y-10">
+            {/* Category filter buttons */}
+            <div className="flex flex-wrap gap-2">
+              {categoryList.map((cat) => (
+                <Button
+                  key={cat}
+                  variant={selectedCategory === cat ? "default" : "outline"}
+                  className={`${selectedCategory === cat ? "bg-[#f8610e] hover:bg-[#f8610e]/90 text-white" : "text-[#6d2803]"} rounded-full px-4 py-2 text-base font-semibold tracking-wide`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat}
+                </Button>
+              ))}
+            </div>
 
-                  {/* If you don't have line-clamp plugin, replace with:
-                      className="flex-grow text-sm leading-relaxed text-gray-600 break-words overflow-hidden text-ellipsis max-h-16"
-                  */}
-                  <p className="flex-grow text-sm leading-relaxed text-gray-600 break-words line-clamp-3">
-                    {description ?? ""}
-                  </p>
-
-                  <p className="mt-2 text-2xl font-extrabold text-[#f8610e]">
-                    {Number(price ?? 0).toLocaleString("en-PH")}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Content */}
+            {selectedCategory === "All" ? renderAllPreview() : renderCategory(selectedCategory)}
           </div>
         )}
       </section>
@@ -546,12 +753,36 @@ export default function ImprovedHomePage() {
       <Dialog open={isProductOpen} onOpenChange={setIsProductOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="break-words">
-              {selectedProduct?.name}
-            </DialogTitle>
+            <div className="flex items-start justify-between gap-2">
+              <DialogTitle className="break-words">
+                {selectedProduct?.name}
+              </DialogTitle>
+              {selectedProduct?.variants && selectedProduct?.baseName && selectedProduct.name !== selectedProduct.baseName && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Back to product"
+                  className="shrink-0"
+                  onClick={() => {
+                    const v = (selectedProduct!.variants as any[]) || [];
+                    setSelectedProduct({
+                      id: selectedProduct!.id,
+                      name: selectedProduct!.baseName!,
+                      description: v[0]?.description ?? "",
+                      image: v[0]?.image,
+                      price: undefined,
+                      variants: v,
+                      baseName: selectedProduct!.baseName,
+                    });
+                  }}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
             {selectedProduct?.price !== undefined ? (
               <DialogDescription className="break-words">
-                ₱{selectedProduct.price}
+                {formatPHP(Number(selectedProduct?.price ?? 0))}
               </DialogDescription>
             ) : null}
           </DialogHeader>
@@ -577,7 +808,98 @@ export default function ImprovedHomePage() {
             <p className="text-sm text-gray-700 whitespace-pre-line break-words">
               {selectedProduct?.description || "No description provided."}
             </p>
+
+            {/* Rating summary for current selection */}
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium text-gray-700">Rating</div>
+              <StarRow average={ratingsMap?.[Number(selectedProduct?.id)]?.average ?? 0} count={ratingsMap?.[Number(selectedProduct?.id)]?.count ?? 0} />
+            </div>
+
+            {/* Submit a rating (no account required) */}
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium text-gray-700">Leave a rating</div>
+              <div className="mb-2 flex items-center gap-2">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const idx = i + 1;
+                  const active = ratingValue >= idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="p-1"
+                      onClick={() => setRatingValue(idx)}
+                      aria-label={`Rate ${idx} star${idx > 1 ? 's' : ''}`}
+                    >
+                      <Star className={active ? "h-6 w-6 text-yellow-500 fill-yellow-500" : "h-6 w-6 text-gray-300"} />
+                    </button>
+                  );
+                })}
+                {ratingValue > 0 && (
+                  <span className="text-sm text-gray-600">{ratingValue}/5</span>
+                )}
+              </div>
+              <textarea
+                className="w-full rounded-md border p-2 text-sm"
+                placeholder="Optional comment"
+                rows={3}
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+              />
+              <div className="mt-2 flex justify-end">
+                <Button
+                  disabled={rateMutation.isPending || ratingValue < 1 || !selectedProduct}
+                  onClick={async () => {
+                    if (!selectedProduct || ratingValue < 1) return;
+                    await rateMutation.mutateAsync({
+                      productId: Number(selectedProduct.id),
+                      rating: ratingValue,
+                      comment: ratingComment || undefined,
+                    });
+                    setRatingValue(0);
+                    setRatingComment("");
+                  }}
+                  className="bg-[#f8610e] hover:bg-[#e2550a]"
+                >
+                  {rateMutation.isPending ? "Submitting…" : "Submit Rating"}
+                </Button>
+              </div>
+            </div>
           </div>
+            {Array.isArray(selectedProduct?.variants) && (selectedProduct?.variants?.length ?? 0) > 1 && (
+              <div className="mt-2">
+                <div className="mb-1 text-sm font-medium text-gray-700">Variants</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(selectedProduct?.variants ?? [])
+                    .slice()
+                    .sort((a: any, b: any) => (a.size || "").localeCompare(b.size || ""))
+                    .map((v: any) => (
+                    <button
+                      key={v.id}
+                      className="flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm hover:bg-orange-50"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const base = selectedProduct?.baseName ?? selectedProduct?.name ?? "";
+                        setSelectedProduct({
+                          id: v.id,
+                          name: `${base} - ${(v.size || "REGULAR").charAt(0) + (v.size || "REGULAR").slice(1).toLowerCase()}`,
+                          description: v.description ?? "",
+                          image: v.image,
+                          price: v.price,
+                          variants: selectedProduct?.variants,
+                          baseName: base,
+                        });
+                      }}
+                    >
+                      <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
+                        {(v.size || "REGULAR").charAt(0) + (v.size || "REGULAR").slice(1).toLowerCase()}
+                      </span>
+                      <span className="font-medium">{formatPHP(parseFloat(v.price))}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
         </DialogContent>
       </Dialog>
 
@@ -900,4 +1222,14 @@ export default function ImprovedHomePage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
 

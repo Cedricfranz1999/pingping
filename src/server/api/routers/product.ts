@@ -13,7 +13,8 @@ export const productsRouter = createTRPCRouter({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(10),
         search: z.string().optional(),
-        category: z.string().optional(),
+        // Accept undefined or null from clients/batch requests
+        category: z.string().nullish(),
         sortBy: z.enum(["name", "price", "stock"]).default("name"),
         sortOrder: z.enum(["asc", "desc"]).default("asc"),
       }),
@@ -96,12 +97,26 @@ export const productsRouter = createTRPCRouter({
         description: z.string().min(1),
         price: z.string(), // your schema has `String` for price
         stock: z.number().int().min(0),
-        image: z.string().url().optional(),
+        image: z.string().optional(),
         category: z.string().min(1), // single category name
         productType: z.nativeEnum(ProductType), // Add this line
+        size: z.string().min(1).default("REGULAR"),
       }),
     )
     .mutation(async ({ input }) => {
+      // Prevent duplicate products with same name + size + productType
+      const existing = await db.product.findFirst({
+        where: {
+          name: input.name,
+          productType: input.productType,
+          size: input.size ?? "REGULAR",
+        },
+      });
+      if (existing) {
+        throw new Error(
+          "Product with the same name and size already exists.",
+        );
+      }
       const category = await db.category.upsert({
         where: { name: input.category },
         update: {},
@@ -114,6 +129,7 @@ export const productsRouter = createTRPCRouter({
           description: input.description,
           price: input.price,
           stock: input.stock,
+          size: input.size ?? "REGULAR",
           productType: input.productType,
 
           image:
@@ -144,12 +160,27 @@ export const productsRouter = createTRPCRouter({
         description: z.string().min(1),
         price: z.string(),
         stock: z.number().int().min(0),
-        image: z.string().url().optional(),
+        image: z.string().optional(),
         category: z.string().min(1),
         productType: z.nativeEnum(ProductType),
+        size: z.string().min(1).default("REGULAR"),
       }),
     )
     .mutation(async ({ input }) => {
+      // Block rename to an existing (name, size, productType) owned by another product
+      const duplicate = await db.product.findFirst({
+        where: {
+          name: input.name,
+          productType: input.productType,
+          size: input.size ?? "REGULAR",
+          NOT: { id: input.id },
+        },
+      });
+      if (duplicate) {
+        throw new Error(
+          "Another product with the same name and size already exists.",
+        );
+      }
       const category = await db.category.upsert({
         where: { name: input.category },
         update: {},
@@ -164,6 +195,7 @@ export const productsRouter = createTRPCRouter({
           price: input.price,
           stock: input.stock,
           image: input.image,
+          size: input.size ?? "REGULAR",
           productType: input.productType,
 
           categories: {
@@ -270,5 +302,84 @@ export const productsRouter = createTRPCRouter({
           stock: input.stock,
         },
       });
+    }),
+
+  // ===============================
+  // PRODUCT RATINGS
+  // ===============================
+  rateProduct: publicProcedure
+    .input(
+      z.object({
+        productId: z.number(),
+        userId: z.number().optional(),
+        rating: z.number().min(1).max(5),
+        comment: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const created = await db.productRating.create({
+        data: {
+          productId: input.productId,
+          userId: input.userId ?? null,
+          rating: input.rating,
+          comment: input.comment ?? null,
+        },
+      });
+      return created;
+    }),
+
+  getRatingsByProductIds: publicProcedure
+    .input(z.object({ productIds: z.array(z.number()).min(1) }))
+    .query(async ({ input }) => {
+      const groups = await db.productRating.groupBy({
+        by: ["productId"],
+        where: { productId: { in: input.productIds } },
+        _avg: { rating: true },
+        _count: { _all: true },
+      });
+
+      // Return as a lookup map { [productId]: { avg, count } }
+      const map: Record<number, { average: number; count: number }> = {};
+      for (const g of groups) {
+        map[g.productId] = {
+          average: Number(g._avg.rating ?? 0),
+          count: g._count._all ?? 0,
+        };
+      }
+      return map;
+    }),
+
+  // Admin listing of all ratings with product details
+  getAllRatings: publicProcedure
+    .input(
+      z
+        .object({
+          page: z.number().min(1).default(1),
+          limit: z.number().min(1).max(100).default(20),
+          productId: z.number().optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ input }) => {
+      const page = input?.page ?? 1;
+      const limit = input?.limit ?? 20;
+      const where = input?.productId ? { productId: input.productId } : {};
+      const total = await db.productRating.count({ where });
+      const ratings = await db.productRating.findMany({
+        where,
+        include: { product: true },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      return {
+        ratings,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     }),
 });

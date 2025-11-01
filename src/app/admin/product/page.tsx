@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
@@ -57,7 +57,10 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 
+// Extend Product shape locally to include `size` in case
+// generated Prisma types are not yet refreshed in the editor.
 type ProductWithCategories = Product & {
+  size?: string | null;
   categories: {
     category: Category;
   }[];
@@ -72,6 +75,7 @@ type ProductFormData = {
   category: string;
   productType: ProductType;
   imageFile?: File | null;
+  size: string;
 };
 
 const ProductsPage: NextPage = () => {
@@ -87,6 +91,7 @@ const ProductsPage: NextPage = () => {
   const [selectedProduct, setSelectedProduct] =
     useState<ProductWithCategories | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
@@ -98,6 +103,7 @@ const ProductsPage: NextPage = () => {
     image: "",
     category: "",
     imageFile: null,
+    size: "SMALL",
   });
 
   const {
@@ -116,12 +122,31 @@ const ProductsPage: NextPage = () => {
   console.log("TEST", productsData);
 
   const { data: categories } = api.product.getCategories.useQuery();
+  const { data: allProducts } = api.product.getAllSimple.useQuery();
+
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<ProductWithCategories[]>([]);
+  const [hasExactDuplicate, setHasExactDuplicate] = useState(false);
+  const [pendingCreatePayload, setPendingCreatePayload] = useState<any | null>(null);
+  const [duplicateBlockedOpen, setDuplicateBlockedOpen] = useState(false);
+  const [duplicateBlockedMessage, setDuplicateBlockedMessage] = useState("Hindi puwedeng magkapareho ang product name at size.");
+
+  const sizeOptions = ["SMALL", "MEDIUM", "LARGE"] as const;
 
   const createProduct = api.product.create.useMutation({
     onSuccess: () => {
       void refetch();
       setIsCreateModalOpen(false);
       resetForm();
+    },
+    onError: (err) => {
+      if (
+        err instanceof Error &&
+        err.message.toLowerCase().includes("same name and size")
+      ) {
+        setDuplicateBlockedMessage("Hindi puwedeng magkapareho ang product name at size.");
+        setDuplicateBlockedOpen(true);
+      }
     },
   });
 
@@ -130,6 +155,15 @@ const ProductsPage: NextPage = () => {
       void refetch();
       setIsEditModalOpen(false);
       resetForm();
+    },
+    onError: (err) => {
+      if (
+        err instanceof Error &&
+        err.message.toLowerCase().includes("same name and size")
+      ) {
+        setDuplicateBlockedMessage("Hindi puwedeng magkapareho ang product name at size.");
+        setDuplicateBlockedOpen(true);
+      }
     },
   });
 
@@ -150,6 +184,7 @@ const ProductsPage: NextPage = () => {
       category: "",
       productType: "TINAPA",
       imageFile: null,
+      size: "SMALL",
     });
   };
 
@@ -173,6 +208,9 @@ const ProductsPage: NextPage = () => {
       image: product.image || "",
       category: product.categories[0]?.category.name || "",
       imageFile: null,
+      size: sizeOptions.includes((product.size as any) ?? "")
+        ? (product.size as any)
+        : "SMALL",
     });
     setIsEditModalOpen(true);
   };
@@ -205,6 +243,40 @@ const ProductsPage: NextPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Client-side duplicate check to provide a friendly dialog
+    if (!isEditModalOpen) {
+      const normalizedName = formData.name.trim().toLowerCase();
+      const normalizedSize = (formData.size || "REGULAR").trim().toLowerCase();
+      const sameNameMatches = (allProducts ?? []).filter(
+        (p: any) =>
+          p.name.trim().toLowerCase() === normalizedName &&
+          p.productType === formData.productType,
+      ) as ProductWithCategories[];
+
+      const exact = sameNameMatches.some(
+        (p) => (p.size ?? "REGULAR").trim().toLowerCase() === normalizedSize,
+      );
+
+      if (sameNameMatches.length > 0) {
+        setDuplicateMatches(sameNameMatches);
+        setHasExactDuplicate(exact);
+        setPendingCreatePayload({
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          stock: formData.stock,
+          image: formData.image,
+          category: formData.category,
+          productType: formData.productType,
+          size: formData.size || "REGULAR",
+        });
+        setIsDuplicateDialogOpen(true);
+        if (exact) return; // block exact duplicate here
+        // If only same name with different sizes found, show dialog first
+        return;
+      }
+    }
+
     const payload = {
       name: formData.name,
       description: formData.description,
@@ -213,6 +285,7 @@ const ProductsPage: NextPage = () => {
       image: formData.image,
       category: formData.category,
       productType: formData.productType,
+      size: formData.size || "REGULAR",
     };
 
     if (isEditModalOpen && selectedProduct) {
@@ -363,23 +436,7 @@ const ProductsPage: NextPage = () => {
                       </div>
                     </TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead
-                      className="cursor-pointer"
-                      onClick={() => handleSort("price")}
-                    >
-                      <div className="flex items-center">
-                        Price
-                        {sortBy === "price" ? (
-                          sortOrder === "asc" ? (
-                            <ChevronUp className="ml-1 h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 h-4 w-4" />
-                          )
-                        ) : (
-                          <span className="ml-1 h-4 w-4" />
-                        )}
-                      </div>
-                    </TableHead>
+                    <TableHead>Price Range</TableHead>
                     {/* <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("stock")}
@@ -407,7 +464,7 @@ const ProductsPage: NextPage = () => {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center">
+                      <TableCell colSpan={6} className="py-8 text-center">
                         <div className="flex items-center justify-center">
                           <Package className="mr-2 h-4 w-4 animate-spin" />
                           Loading products...
@@ -416,7 +473,7 @@ const ProductsPage: NextPage = () => {
                     </TableRow>
                   ) : productsData?.products.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center">
+                      <TableCell colSpan={6} className="py-8 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Package className="text-muted-foreground h-8 w-8" />
                           <p className="text-muted-foreground">
@@ -426,83 +483,154 @@ const ProductsPage: NextPage = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    productsData?.products.map((product: any) => (
-                      <TableRow key={product.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage
-                              src={product.image || "/placeholder.svg"}
-                              alt={product.name}
-                            />
-                            <AvatarFallback>
-                              <Package className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="font-medium">{product.name}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-muted-foreground max-w-[200px] truncate">
-                            {product.description}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            ₱{parseFloat(product.price).toFixed(2)}
-                          </div>
-                        </TableCell>
-                        {/* <TableCell>
-                          <Badge
-                            variant={getStockBadgeVariant(product.stock)}
-                            className={`${product.stock > 10 ? "bg-green-600" : "bg-red-600"}`}
-                          >
-                            {product.stock} - {getStockText(product.stock)}
-                          </Badge>
-                        </TableCell> */}
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="border-[#f8610e]/20 text-[#f8610e]"
-                          >
-                            {product.categories[0]?.category.name ||
-                              "Uncategorized"}
-                          </Badge>
-                        </TableCell>
-                        {/* Hidden per request: Type cell */}
-                        {/**
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="border-[#f8610e]/20 text-[#f8610e]"
-                          >
-                            {product.productType}
-                          </Badge>
-                        </TableCell>
-                        **/}
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(product)}
-                              className="hover:bg-[#f8610e]/10"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openDeleteModal(product)}
-                              className="hover:bg-red-100"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    (() => {
+                      const grouped = new Map<string, any[]>();
+                      productsData?.products.forEach((p: any) => {
+                        const key = p.name.trim().toLowerCase();
+                        const arr = grouped.get(key) ?? [];
+                        arr.push(p);
+                        grouped.set(key, arr);
+                      });
+                      const groups = Array.from(grouped.entries());
+                      return groups.map(([key, variants]) => {
+                        const first = variants[0];
+                        const prices = variants
+                          .map((v) => parseFloat(v.price))
+                          .filter((n) => !Number.isNaN(n));
+                        const min = Math.min(...prices);
+                        const max = Math.max(...prices);
+                        const hasMultiple = variants.length > 1;
+                        const isExpanded = expandedGroups.has(key);
+                        return (
+                          <>
+                            <TableRow key={key} className="hover:bg-muted/50">
+                              <TableCell>
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={first.image || "/placeholder.svg"} alt={first.name} />
+                                  <AvatarFallback>
+                                    <Package className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TableCell>
+                              <TableCell>
+                                {hasMultiple ? (
+                                  <button
+                                    type="button"
+                                    className="text-left font-medium flex items-center gap-2"
+                                    onClick={() => {
+                                      const next = new Set(expandedGroups);
+                                      if (next.has(key)) next.delete(key);
+                                      else next.add(key);
+                                      setExpandedGroups(next);
+                                    }}
+                                  >
+                                    {first.name}
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <div className="font-medium">{first.name}</div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-muted-foreground max-w-[240px] truncate">
+                                  {first.description}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-medium">
+                                  {hasMultiple
+                                    ? min === max
+                                      ? `₱${min.toFixed(2)}`
+                                      : `₱${min.toFixed(2)} - ₱${max.toFixed(2)}`
+                                    : `₱${parseFloat(first.price).toFixed(2)}`}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="border-[#f8610e]/20 text-[#f8610e]">
+                                  {first.categories?.[0]?.category?.name || "Uncategorized"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {hasMultiple ? (
+                                  <div className="text-sm text-muted-foreground">
+                                    {variants.length} variants
+                                  </div>
+                                ) : (
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openEditModal(first)}
+                                      className="hover:bg-[#f8610e]/10"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openDeleteModal(first)}
+                                      className="hover:bg-red-100"
+                                    >
+                                      <Trash2 className="h-4 w-4 text-red-600" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            {hasMultiple && isExpanded && (
+                              <TableRow>
+                                <TableCell colSpan={6}>
+                                  <div className="rounded-md border p-4 space-y-3">
+                                    <div className="text-sm font-medium">Variants</div>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                      {variants
+                                        .sort((a, b) => (a.size || '').localeCompare(b.size || ''))
+                                        .map((v: any) => (
+                                          <div key={v.id} className="flex items-center justify-between rounded-md border p-3">
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <Badge variant="outline">
+                                                  {(v.size || 'REGULAR').charAt(0) + (v.size || 'REGULAR').slice(1).toLowerCase()}
+                                                </Badge>
+                                                <span className="font-medium">₱{parseFloat(v.price).toFixed(2)}</span>
+                                              </div>
+                                              <div className="text-xs text-muted-foreground max-w-[300px] truncate">
+                                                {v.description}
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="hover:bg-[#f8610e]/10"
+                                                onClick={() => openEditModal(v)}
+                                              >
+                                                <Edit className="h-4 w-4" />
+                                              </Button>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="hover:bg-red-100"
+                                                onClick={() => openDeleteModal(v)}
+                                              >
+                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        );
+                      });
+                    })()
                   )}
                 </TableBody>
               </Table>
@@ -607,6 +735,25 @@ const ProductsPage: NextPage = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="size">Variant/Size</Label>
+              <Select
+                value={formData.size}
+                onValueChange={(value) => setFormData({ ...formData, size: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizeOptions.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt.charAt(0) + opt.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -625,7 +772,7 @@ const ProductsPage: NextPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price (₱)</Label>
+                <Label htmlFor="price">Price (â‚±)</Label>
                 <Input
                   id="price"
                   type="number"
@@ -765,6 +912,25 @@ const ProductsPage: NextPage = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="edit-size">Variant/Size</Label>
+              <Select
+                value={formData.size}
+                onValueChange={(value) => setFormData({ ...formData, size: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizeOptions.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt.charAt(0) + opt.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>
               <Textarea
                 id="edit-description"
@@ -783,7 +949,7 @@ const ProductsPage: NextPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-price">Price (₱)</Label>
+                <Label htmlFor="edit-price">Price (â‚±)</Label>
                 <Input
                   id="edit-price"
                   type="number"
@@ -903,6 +1069,87 @@ const ProductsPage: NextPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Duplicate warning dialog */}
+      <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#f8610e]">Duplicate product</DialogTitle>
+            {hasExactDuplicate ? (
+              <DialogDescription>
+                A product with the same name and size already exists. You cannot add an exact duplicate. Edit the existing product or change the size.
+              </DialogDescription>
+            ) : (
+              <DialogDescription>
+                Products with the same name already exist. You can add a new variant with a different size, or edit an existing one below.
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="space-y-3">
+            {duplicateMatches.map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded border p-3">
+                <div className="space-y-1">
+                  <div className="font-medium">{p.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Size: <span className="font-medium">{p.size ?? "REGULAR"}</span> Â· Price: â‚±{parseFloat(p.price as any).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Category: {p.categories?.[0]?.category?.name ?? "Uncategorized"}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsDuplicateDialogOpen(false);
+                    setIsCreateModalOpen(false);
+                    openEditModal(p as any);
+                  }}
+                >
+                  Edit
+                </Button>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <div className="flex w-full items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsDuplicateDialogOpen(false)}>
+                Change size
+              </Button>
+              {!hasExactDuplicate && (
+                <Button
+                  className="bg-[#f8610e] hover:bg-[#f8610e]/90"
+                  onClick={() => {
+                    if (pendingCreatePayload) {
+                      createProduct.mutate(pendingCreatePayload);
+                      setIsDuplicateDialogOpen(false);
+                      setPendingCreatePayload(null);
+                    }
+                  }}
+                >
+                  Add as new size
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate blocked dialog */}
+      <Dialog open={duplicateBlockedOpen} onOpenChange={setDuplicateBlockedOpen}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Hindi puwede</DialogTitle>
+            <DialogDescription>
+              {duplicateBlockedMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateBlockedOpen(false)}>
+              Okay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -937,3 +1184,5 @@ const ProductsPage: NextPage = () => {
 };
 
 export default ProductsPage;
+
+

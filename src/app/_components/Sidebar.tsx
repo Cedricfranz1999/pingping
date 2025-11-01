@@ -13,6 +13,7 @@ import {
   Clock,
   ListOrdered,
   Codesandbox,
+  Star,
 } from "lucide-react";
 import { Label } from "~/components/ui/label";
 import { usePathname } from "next/navigation";
@@ -480,6 +481,23 @@ const Sidebar = () => {
                           }`}
                         />
                         Product Category
+                      </Link>
+                      <Link
+                        href="/admin/ratings"
+                        className={`group flex items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
+                          isActive("/admin/ratings")
+                            ? "bg-white/80 text-[#f8610e] shadow-md backdrop-blur-sm"
+                            : "text-white/90 hover:bg-white/15 hover:backdrop-blur-sm"
+                        }`}
+                      >
+                        <Star
+                          className={`h-4 w-4 ${
+                            isActive("/admin/ratings")
+                              ? "text-[#f8610e]"
+                              : "text-white/90"
+                          }`}
+                        />
+                        Product Ratings
                       </Link>
                     </motion.div>
                   )}
