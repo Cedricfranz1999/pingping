@@ -266,7 +266,7 @@ const CartPage = () => {
                         className="rounded-lg object-cover flex-shrink-0"
                         unoptimized
                       />
-                      
+{/*                       
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-lg mb-1 truncate">{item.product.name}</h3>
                         <p className="text-gray-600 text-sm mb-2">₱{item.product.price}</p>
@@ -278,7 +278,7 @@ const CartPage = () => {
                           )}
                         </p>
                       </div>
-                      
+                       */}
                       <div className="flex flex-col items-end gap-3">
                         <div className="flex items-center gap-2">
                           <Button
@@ -299,7 +299,7 @@ const CartPage = () => {
                             )}
                           </div>
                           
-                          <Button
+                          {/* <Button
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
@@ -307,7 +307,7 @@ const CartPage = () => {
                             disabled={item.quantity >= item.product.stock || isUpdating}
                           >
                             <Plus className="h-3 w-3" />
-                          </Button>
+                          </Button> */}
                         </div>
                         
                         <Button
