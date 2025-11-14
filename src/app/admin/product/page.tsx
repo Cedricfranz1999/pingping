@@ -1,5 +1,5 @@
-﻿"use client";
-import { useState } from "react";
+"use client";
+import React, { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
 import { type Product, type Category, ProductType } from "@prisma/client";
@@ -66,6 +66,8 @@ type ProductWithCategories = Product & {
   }[];
 };
 
+type SizeOption = "SMALL" | "MEDIUM" | "LARGE";
+
 type ProductFormData = {
   name: string;
   description: string;
@@ -75,7 +77,7 @@ type ProductFormData = {
   category: string;
   productType: ProductType;
   imageFile?: File | null;
-  size: string;
+  size: SizeOption;
 };
 
 const ProductsPage: NextPage = () => {
@@ -167,7 +169,7 @@ const ProductsPage: NextPage = () => {
     },
   });
 
-  const deleteProduct = api.product.delete.useMutation({
+  const deleteProduct = api.product.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
@@ -208,9 +210,12 @@ const ProductsPage: NextPage = () => {
       image: product.image || "",
       category: product.categories[0]?.category.name || "",
       imageFile: null,
-      size: sizeOptions.includes((product.size as any) ?? "")
-        ? (product.size as any)
-        : "SMALL",
+      size: ((): SizeOption => {
+        const normalized = ((product.size ?? "SMALL") as string).toUpperCase();
+        return (sizeOptions.includes(normalized as any)
+          ? (normalized as any)
+          : "SMALL") as SizeOption;
+      })(),
     });
     setIsEditModalOpen(true);
   };
@@ -246,7 +251,7 @@ const ProductsPage: NextPage = () => {
     // Client-side duplicate check to provide a friendly dialog
     if (!isEditModalOpen) {
       const normalizedName = formData.name.trim().toLowerCase();
-      const normalizedSize = (formData.size || "REGULAR").trim().toLowerCase();
+      const normalizedSize = (formData.size || "SMALL").trim().toLowerCase();
       const sameNameMatches = (allProducts ?? []).filter(
         (p: any) =>
           p.name.trim().toLowerCase() === normalizedName &&
@@ -254,7 +259,7 @@ const ProductsPage: NextPage = () => {
       ) as ProductWithCategories[];
 
       const exact = sameNameMatches.some(
-        (p) => (p.size ?? "REGULAR").trim().toLowerCase() === normalizedSize,
+        (p) => (p.size ?? "SMALL").trim().toLowerCase() === normalizedSize,
       );
 
       if (sameNameMatches.length > 0) {
@@ -268,7 +273,7 @@ const ProductsPage: NextPage = () => {
           image: formData.image,
           category: formData.category,
           productType: formData.productType,
-          size: formData.size || "REGULAR",
+          size: formData.size || "SMALL",
         });
         setIsDuplicateDialogOpen(true);
         if (exact) return; // block exact duplicate here
@@ -285,7 +290,7 @@ const ProductsPage: NextPage = () => {
       image: formData.image,
       category: formData.category,
       productType: formData.productType,
-      size: formData.size || "REGULAR",
+      size: (formData.size || "SMALL").toString().toUpperCase() as SizeOption,
     };
 
     if (isEditModalOpen && selectedProduct) {
@@ -406,6 +411,7 @@ const ProductsPage: NextPage = () => {
             </div>
           </CardContent>
         </Card>
+        
 
         <Card className="border-[#f8610e]/20">
           <CardHeader>
@@ -437,6 +443,7 @@ const ProductsPage: NextPage = () => {
                     </TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Price Range</TableHead>
+                    <TableHead>Size</TableHead>
                     {/* <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("stock")}
@@ -502,8 +509,8 @@ const ProductsPage: NextPage = () => {
                         const hasMultiple = variants.length > 1;
                         const isExpanded = expandedGroups.has(key);
                         return (
-                          <>
-                            <TableRow key={key} className="hover:bg-muted/50">
+                          <React.Fragment key={key}>
+                            <TableRow className="hover:bg-muted/50">
                               <TableCell>
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={first.image || "/placeholder.svg"} alt={first.name} />
@@ -544,10 +551,21 @@ const ProductsPage: NextPage = () => {
                                 <div className="font-medium">
                                   {hasMultiple
                                     ? min === max
-                                      ? `₱${min.toFixed(2)}`
-                                      : `₱${min.toFixed(2)} - ₱${max.toFixed(2)}`
-                                    : `₱${parseFloat(first.price).toFixed(2)}`}
+                                      ? `?${min.toFixed(2)}`
+                                      : `?${min.toFixed(2)} - ?${max.toFixed(2)}`
+                                    : `?${parseFloat(first.price).toFixed(2)}`}
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                {hasMultiple ? (
+                                  <Badge variant="outline" className="border-[#f8610e]/20 text-[#f8610e]">
+                                    Multiple
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-[#f8610e]/20 text-[#f8610e]">
+                                    {(first.size || 'SMALL').charAt(0) + (first.size || 'SMALL').slice(1).toLowerCase()}
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="border-[#f8610e]/20 text-[#f8610e]">
@@ -594,9 +612,9 @@ const ProductsPage: NextPage = () => {
                                             <div className="space-y-1">
                                               <div className="flex items-center gap-2">
                                                 <Badge variant="outline">
-                                                  {(v.size || 'REGULAR').charAt(0) + (v.size || 'REGULAR').slice(1).toLowerCase()}
+                                                  {(v.size || 'SMALL').charAt(0) + (v.size || 'SMALL').slice(1).toLowerCase()}
                                                 </Badge>
-                                                <span className="font-medium">₱{parseFloat(v.price).toFixed(2)}</span>
+                                                <span className="font-medium">?{parseFloat(v.price).toFixed(2)}</span>
                                               </div>
                                               <div className="text-xs text-muted-foreground max-w-[300px] truncate">
                                                 {v.description}
@@ -627,7 +645,7 @@ const ProductsPage: NextPage = () => {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </React.Fragment>
                         );
                       });
                     })()
@@ -738,7 +756,7 @@ const ProductsPage: NextPage = () => {
               <Label htmlFor="size">Variant/Size</Label>
               <Select
                 value={formData.size}
-                onValueChange={(value) => setFormData({ ...formData, size: value })}
+                onValueChange={(value) => setFormData({ ...formData, size: value as SizeOption })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select size" />
@@ -772,7 +790,7 @@ const ProductsPage: NextPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price (â‚±)</Label>
+                <Label htmlFor="price">Price (₱)</Label>
                 <Input
                   id="price"
                   type="number"
@@ -915,7 +933,7 @@ const ProductsPage: NextPage = () => {
               <Label htmlFor="edit-size">Variant/Size</Label>
               <Select
                 value={formData.size}
-                onValueChange={(value) => setFormData({ ...formData, size: value })}
+                onValueChange={(value) => setFormData({ ...formData, size: value as SizeOption })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select size" />
@@ -949,7 +967,7 @@ const ProductsPage: NextPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-price">Price (â‚±)</Label>
+                <Label htmlFor="edit-price">Price (₱)</Label>
                 <Input
                   id="edit-price"
                   type="number"
@@ -1090,7 +1108,7 @@ const ProductsPage: NextPage = () => {
                 <div className="space-y-1">
                   <div className="font-medium">{p.name}</div>
                   <div className="text-sm text-muted-foreground">
-                    Size: <span className="font-medium">{p.size ?? "REGULAR"}</span> Â· Price: â‚±{parseFloat(p.price as any).toFixed(2)}
+                    Size: <span className="font-medium">{p.size ?? "REGULAR"}</span> · Price: ₱{parseFloat(p.price as any).toFixed(2)}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Category: {p.categories?.[0]?.category?.name ?? "Uncategorized"}
@@ -1184,5 +1202,6 @@ const ProductsPage: NextPage = () => {
 };
 
 export default ProductsPage;
+
 
 

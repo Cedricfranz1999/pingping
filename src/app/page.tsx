@@ -81,11 +81,13 @@ export default function ImprovedHomePage() {
     baseName?: string;
   } | null>(null);
   const [isProductOpen, setIsProductOpen] = useState(false);
+  const [showVariantList, setShowVariantList] = useState(true);
   const utils = api.useUtils();
   const rateMutation = api.product.rateProduct.useMutation({
-    onSuccess: async (_data, variables) => {
+    onSuccess: async () => {
       try {
-        await utils.product.getRatingsByProductIds.invalidate({ productIds: [variables.productId] });
+        // Invalidate all ratings to refresh group and variant views
+        await utils.product.getRatingsByProductIds.invalidate();
       } catch {}
     },
   });
@@ -110,7 +112,22 @@ export default function ImprovedHomePage() {
     { enabled: allProductIds.length > 0 }
   );
 
-  const computeGroupRating = (variants: any[]) => {
+  // Dialog helpers: group vs variant view and rating target
+  const isGroupView = !!selectedProduct && selectedProduct.price === undefined;
+  const groupDialogStats = useMemo(() => {
+    if (!selectedProduct || !Array.isArray(selectedProduct.variants)) return { avg: 0, count: 0 };
+    return computeGroupRating(selectedProduct.variants as any[]);
+  }, [selectedProduct, ratingsMap]);
+  const ratingTargetId = useMemo(() => {
+    if (!selectedProduct) return undefined as number | undefined;
+    if (selectedProduct.price === undefined) {
+      const v = (selectedProduct.variants ?? [])[0] as any;
+      return v ? Number(v.id) : undefined;
+    }
+    return Number(selectedProduct.id);
+  }, [selectedProduct]);
+
+  function computeGroupRating(variants: any[]) {
     if (!ratingsMap) return { avg: 0, count: 0 };
     let total = 0;
     let count = 0;
@@ -122,20 +139,37 @@ export default function ImprovedHomePage() {
       }
     }
     return { avg: count > 0 ? total / count : 0, count };
-  };
+  }
 
   const StarRow = ({ average, count }: { average: number; count?: number }) => {
-    const full = Math.floor(average);
-    const stars = Array.from({ length: 5 }, (_, i) => i < full);
+    const stars = Array.from({ length: 5 }, (_, i) => {
+      const fill = Math.max(0, Math.min(1, average - i)); // 0..1 per-star fill
+      return fill;
+    });
+    const hasRatings = typeof count === "number" ? count > 0 : average > 0;
     return (
       <div className="flex items-center gap-2 text-sm text-gray-600">
         <div className="flex items-center">
-          {stars.map((filled, idx) => (
-            <Star key={idx} className={filled ? "h-4 w-4 text-yellow-500 fill-yellow-500" : "h-4 w-4 text-gray-300"} />
+          {stars.map((fill, idx) => (
+            <div key={idx} className="relative h-4 w-4">
+              <Star className="absolute inset-0 h-4 w-4 text-gray-300" />
+              <div
+                className="absolute inset-0 overflow-hidden"
+                style={{ width: `${Math.round(fill * 100)}%` }}
+              >
+                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              </div>
+            </div>
           ))}
         </div>
-        <span className="font-medium">{average.toFixed(1)}</span>
-        {typeof count === "number" && <span className="text-gray-400">({count})</span>}
+        {hasRatings ? (
+          <>
+            <span className="font-medium">{average.toFixed(1)}</span>
+            {typeof count === "number" && <span className="text-gray-400">({count})</span>}
+          </>
+        ) : (
+          <span className="text-gray-400">No ratings yet</span>
+        )}
       </div>
     );
   };
@@ -166,13 +200,15 @@ export default function ImprovedHomePage() {
   }, [allProducts]);
 
   // Category filter state (top buttons)
-  const categoryList = useMemo(
-    () => [
-      "All",
-      ...Array.from(new Set(groupedByCategory.map((g) => g.category))),
-    ],
-    [groupedByCategory],
-  );
+  const categoryList = useMemo(() => {
+    const cats = Array.from(new Set(groupedByCategory.map((g) => g.category)));
+    cats.sort((a, b) => {
+      if (a === "Uncategorized") return 1;
+      if (b === "Uncategorized") return -1;
+      return a.localeCompare(b);
+    });
+    return ["All", ...cats];
+  }, [groupedByCategory]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   // Helpers to render product cards and sections
@@ -185,7 +221,22 @@ export default function ImprovedHomePage() {
     });
 
   const renderProductCard = (name: string, variants: any[]) => {
-    const first = variants[0] as any;
+    const sorted = variants
+      .slice()
+      .sort((a: any, b: any) => {
+        // Prefer size order SMALL < MEDIUM < LARGE when available; fallback to price asc
+        const order = { SMALL: 0, MEDIUM: 1, LARGE: 2 } as Record<string, number>;
+        const as = order[(a?.size || "").toUpperCase()] ?? 99;
+        const bs = order[(b?.size || "").toUpperCase()] ?? 99;
+        if (as !== bs) return as - bs;
+        const ap = Number.parseFloat(a?.price ?? "0");
+        const bp = Number.parseFloat(b?.price ?? "0");
+        return (Number.isNaN(ap) ? 0 : ap) - (Number.isNaN(bp) ? 0 : bp);
+      });
+    const first = (sorted[0] as any) ?? (variants[0] as any);
+    const groupDesc =
+      (variants.find((v: any) => (v?.description ?? "").trim().length > 0)?.description as string | undefined) ??
+      (first?.description ?? "");
     const prices = variants
       .map((v: any) => parseFloat(v.price))
       .filter((n: number) => !Number.isNaN(n));
@@ -198,36 +249,41 @@ export default function ImprovedHomePage() {
         role="button"
         tabIndex={0}
         onClick={() => {
-          // Default open first variant
           setSelectedProduct({
-            id: first?.id ?? name,
+            id: first?.id, // ensure numeric id for consistency
             name,
-            description: first?.description ?? "",
-            image: first?.image,
-            price: undefined, variants: variants, baseName: name,
+            description: groupDesc ?? "",
+            image: first?.image, // show base product image (from first variant)
+            price: undefined,
+            variants,
+            baseName: name,
           });
+          setShowVariantList(true);
           setIsProductOpen(true);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             setSelectedProduct({
-              id: first?.id ?? name,
+              id: first?.id, // ensure numeric id for consistency
               name,
-              description: first?.description ?? "",
-              image: first?.image,
-              price: undefined, variants: variants, baseName: name,
+              description: groupDesc ?? "",
+              image: first?.image, // show base product image (from first variant)
+              price: undefined,
+              variants,
+              baseName: name,
             });
+            setShowVariantList(true);
             setIsProductOpen(true);
           }
         }}
-        className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
+        className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
       >
         <div className="relative h-56 w-full">
           <Image src={first?.image || "/placeholder.svg"} alt={name} fill unoptimized className="object-cover" />
         </div>
         <CardContent className="flex flex-grow flex-col gap-3 p-6">
           <h4 className="text-xl font-bold text-gray-900 line-clamp-1">{name}</h4>
-          <p className="text-sm leading-relaxed text-gray-600 line-clamp-3">{first?.description ?? ""}</p>
+          <p className="text-sm leading-relaxed text-gray-600 line-clamp-3">{groupDesc ?? ""}</p>
           <StarRow average={groupStats.avg} count={groupStats.count} />
           <div className="text-lg font-semibold text-[#f8610e]">
             {prices.length === 0
@@ -236,38 +292,32 @@ export default function ImprovedHomePage() {
               ? `${formatPHP(min)} - ${formatPHP(max)}`
               : formatPHP(prices[0] ?? 0)}
           </div>
-          {variants.length > 1 && (
-            <div className="mt-2">
+          {variants.length > 0 && (
+            <div className="mt-2 hidden group-hover:block">
               <div className="mb-1 text-xs font-medium text-gray-500">Variants</div>
               <div className="grid grid-cols-2 gap-2">
                 {variants
-                  .sort((a: any, b: any) => (a.size || '').localeCompare(b.size || ''))
+                  .slice(0, 4)
+                  .slice()
+                  .sort((a: any, b: any) => (a.size || "").localeCompare(b.size || ""))
                   .map((v: any) => (
-                    <button
+                    <div
                       key={v.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm hover:bg-orange-50"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedProduct({
-                          id: v.id,
-                          name: `${name} - ${(v.size || 'REGULAR').charAt(0) + (v.size || 'REGULAR').slice(1).toLowerCase()}`,
-                          description: v.description ?? '',
-                          image: v.image,
-                          price: v.price,
-                        });
-                        setIsProductOpen(true);
-                      }}
+                      className="flex items-center justify-between rounded-md border px-3 py-1"
                     >
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
-                          {(v.size || 'REGULAR').charAt(0) + (v.size || 'REGULAR').slice(1).toLowerCase()}
-                        </span>
-                        <div className="-ml-1"><StarRow average={ratingsMap?.[v.id]?.average ?? 0} /></div>
-                      </div>
-                      <span className="font-medium">{formatPHP(parseFloat(v.price))}</span>
-                    </button>
+                      <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
+                        {(v.size || "SMALL").charAt(0) + (v.size || "SMALL").slice(1).toLowerCase()}
+                      </span>
+                      <span className="text-xs font-medium">
+                        {formatPHP(parseFloat(v.price))}
+                      </span>
+                    </div>
                   ))}
+                {variants.length > 4 && (
+                  <div className="col-span-2 text-right text-[11px] text-gray-500">
+                    +{variants.length - 4} more
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -276,20 +326,109 @@ export default function ImprovedHomePage() {
     );
   };
 
+  // Single-variant card (one card per product row/variant)
+  const renderVariantCard = (v: any) => {
+    const base = (v?.name ?? "").trim();
+    const sizeLabel = (v?.size || "SMALL").charAt(0) + (v?.size || "SMALL").slice(1).toLowerCase();
+    const priceNum = parseFloat(v?.price ?? 0);
+    const priceText = formatPHP(Number.isNaN(priceNum) ? 0 : priceNum);
+    const rating = ratingsMap?.[Number(v?.id)];
+    // Find other variants with the same base name for dialog context
+    const groupEntry = flatProductGroups.find((g) => (g.name ?? "").trim().toLowerCase() === base.toLowerCase());
+    const dialogVariants = groupEntry?.variants ?? [v];
+    return (
+      <Card
+        key={v.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          setSelectedProduct({
+            id: v.id,
+            name: `${base} - ${sizeLabel}`,
+            description: v.description ?? "",
+            image: v.image,
+            price: v.price,
+            variants: dialogVariants,
+            baseName: base,
+          });
+          setShowVariantList(true);
+          setIsProductOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            setSelectedProduct({
+              id: v.id,
+              name: `${base} - ${sizeLabel}`,
+              description: v.description ?? "",
+              image: v.image,
+              price: v.price,
+              variants: dialogVariants,
+              baseName: base,
+            });
+            setShowVariantList(true);
+            setIsProductOpen(true);
+          }
+        }}
+        className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
+      >
+        <div className="relative h-56 w-full">
+          <Image src={v?.image || "/placeholder.svg"} alt={`${base} - ${sizeLabel}`} fill unoptimized className="object-cover" />
+        </div>
+        <CardContent className="flex flex-grow flex-col gap-3 p-6">
+          <h4 className="text-xl font-bold text-gray-900 line-clamp-1">{base}</h4>
+          <div className="flex items-center justify-between">
+            <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{sizeLabel}</span>
+            <span className="text-lg font-semibold text-[#f8610e]">{priceText}</span>
+          </div>
+          <p className="text-sm leading-relaxed text-gray-600 line-clamp-3">{v?.description ?? ""}</p>
+          <StarRow average={rating?.average ?? 0} count={rating?.count ?? 0} />
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const showVariantsAsCards = false;
   const renderAllPreview = () => (
     <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {flatProductGroups.slice(0, 6).map(({ name, variants }) => renderProductCard(name, variants))}
+      {showVariantsAsCards
+        ? (allProducts ?? []).slice(0, 6).map((v: any) => renderVariantCard(v))
+        : flatProductGroups
+            .slice()
+            .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+            .slice(0, 6)
+            .map(({ name, variants }) => renderProductCard(name, variants))}
     </div>
   );
 
   const renderCategory = (cat: string) => {
-    const group = groupedByCategory.find((g) => g.category === cat);
-    if (!group) return null;
+    if (!showVariantsAsCards) {
+      const group = groupedByCategory.find((g) => g.category === cat);
+      if (!group) return null;
+      return (
+        <div className="space-y-4" id={`cat-${cat}`}>
+          <h3 className="text-2xl font-bold text-[#6d2803]">{cat}</h3>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {group.items
+              .slice()
+              .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+              .map(({ name, variants }) => renderProductCard(name, variants))}
+          </div>
+        </div>
+      );
+    }
+    // Variant-per-card rendering per category
+    const items = (allProducts ?? []).filter((p: any) => {
+      const names = (p?.categories ?? [])
+        .map((c: any) => c?.category?.name)
+        .filter(Boolean) as string[];
+      const list = names?.length ? names : ["Uncategorized"];
+      return list.includes(cat);
+    });
     return (
       <div className="space-y-4" id={`cat-${cat}`}>
         <h3 className="text-2xl font-bold text-[#6d2803]">{cat}</h3>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {group.items.map(({ name, variants }) => renderProductCard(name, variants))}
+          {items.map((v: any) => renderVariantCard(v))}
         </div>
       </div>
     );
@@ -751,7 +890,7 @@ export default function ImprovedHomePage() {
 
       {/* Product Details Dialog */}
       <Dialog open={isProductOpen} onOpenChange={setIsProductOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <div className="flex items-start justify-between gap-2">
               <DialogTitle className="break-words">
@@ -765,15 +904,17 @@ export default function ImprovedHomePage() {
                   className="shrink-0"
                   onClick={() => {
                     const v = (selectedProduct!.variants as any[]) || [];
+                    const groupDesc = (v.find((x: any) => (x?.description ?? "").trim().length > 0)?.description) ?? (v[0]?.description ?? "");
                     setSelectedProduct({
-                      id: selectedProduct!.id,
+                      id: v[0]?.id,
                       name: selectedProduct!.baseName!,
-                      description: v[0]?.description ?? "",
+                      description: groupDesc,
                       image: v[0]?.image,
                       price: undefined,
                       variants: v,
                       baseName: selectedProduct!.baseName,
                     });
+                    setShowVariantList(true);
                   }}
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -788,7 +929,7 @@ export default function ImprovedHomePage() {
           </DialogHeader>
 
           {/* Scrollable body to prevent overflow */}
-          <div className="space-y-4 overflow-y-auto pr-1">
+          <div className="space-y-4 overflow-y-auto pr-1 flex-1">
             <div className="relative h-64 w-full overflow-hidden rounded-xl shrink-0">
               {selectedProduct?.image ? (
                 <Image
@@ -809,62 +950,30 @@ export default function ImprovedHomePage() {
               {selectedProduct?.description || "No description provided."}
             </p>
 
-            {/* Rating summary for current selection */}
-            <div className="rounded-lg border p-3">
-              <div className="mb-2 text-sm font-medium text-gray-700">Rating</div>
-              <StarRow average={ratingsMap?.[Number(selectedProduct?.id)]?.average ?? 0} count={ratingsMap?.[Number(selectedProduct?.id)]?.count ?? 0} />
-            </div>
-
-            {/* Submit a rating (no account required) */}
-            <div className="rounded-lg border p-3">
-              <div className="mb-2 text-sm font-medium text-gray-700">Leave a rating</div>
-              <div className="mb-2 flex items-center gap-2">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = i + 1;
-                  const active = ratingValue >= idx;
+            {/* Price summary for group view */}
+            {isGroupView && Array.isArray(selectedProduct?.variants) && (selectedProduct?.variants?.length ?? 0) > 0 && (
+              <div className="rounded-lg border p-3">
+                <div className="mb-1 text-sm font-medium text-gray-700">Price</div>
+                {(() => {
+                  const prices = (selectedProduct?.variants ?? [])
+                    .map((v: any) => parseFloat(v.price))
+                    .filter((n: number) => !Number.isNaN(n));
+                  const min = Math.min(...prices);
+                  const max = Math.max(...prices);
                   return (
-                    <button
-                      key={idx}
-                      type="button"
-                      className="p-1"
-                      onClick={() => setRatingValue(idx)}
-                      aria-label={`Rate ${idx} star${idx > 1 ? 's' : ''}`}
-                    >
-                      <Star className={active ? "h-6 w-6 text-yellow-500 fill-yellow-500" : "h-6 w-6 text-gray-300"} />
-                    </button>
+                    <div className="text-lg font-semibold text-[#f8610e]">
+                      {prices.length === 0
+                        ? formatPHP(0)
+                        : prices.length > 1 && min !== max
+                        ? `${formatPHP(min)} - ${formatPHP(max)}`
+                        : formatPHP(prices[0] ?? 0)}
+                    </div>
                   );
-                })}
-                {ratingValue > 0 && (
-                  <span className="text-sm text-gray-600">{ratingValue}/5</span>
-                )}
+                })()}
               </div>
-              <textarea
-                className="w-full rounded-md border p-2 text-sm"
-                placeholder="Optional comment"
-                rows={3}
-                value={ratingComment}
-                onChange={(e) => setRatingComment(e.target.value)}
-              />
-              <div className="mt-2 flex justify-end">
-                <Button
-                  disabled={rateMutation.isPending || ratingValue < 1 || !selectedProduct}
-                  onClick={async () => {
-                    if (!selectedProduct || ratingValue < 1) return;
-                    await rateMutation.mutateAsync({
-                      productId: Number(selectedProduct.id),
-                      rating: ratingValue,
-                      comment: ratingComment || undefined,
-                    });
-                    setRatingValue(0);
-                    setRatingComment("");
-                  }}
-                  className="bg-[#f8610e] hover:bg-[#e2550a]"
-                >
-                  {rateMutation.isPending ? "Submitting…" : "Submit Rating"}
-                </Button>
-              </div>
-            </div>
-          </div>
+            )}
+
+            {/* Variant selector (compact) */}
             {Array.isArray(selectedProduct?.variants) && (selectedProduct?.variants?.length ?? 0) > 1 && (
               <div className="mt-2">
                 <div className="mb-1 text-sm font-medium text-gray-700">Variants</div>
@@ -872,31 +981,164 @@ export default function ImprovedHomePage() {
                   {(selectedProduct?.variants ?? [])
                     .slice()
                     .sort((a: any, b: any) => (a.size || "").localeCompare(b.size || ""))
-                    .map((v: any) => (
+                    .map((v: any) => {
+                      const sizeLabel = (v.size || "SMALL").charAt(0) + (v.size || "SMALL").slice(1).toLowerCase();
+                      const active = Number(selectedProduct?.id) === Number(v.id);
+                      return (
+                        <button
+                          key={v.id}
+                          className={`flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm hover:bg-orange-50 ${active ? 'bg-orange-50 border-orange-300' : ''}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const base = selectedProduct?.baseName ?? selectedProduct?.name ?? "";
+                            setSelectedProduct({
+                              id: v.id,
+                              name: `${base} - ${sizeLabel}`,
+                              description: v.description ?? "",
+                              image: v.image,
+                              price: v.price,
+                              variants: selectedProduct?.variants,
+                              baseName: base,
+                            });
+                          }}
+                        >
+                          <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{sizeLabel}</span>
+                          <span className="font-medium">{formatPHP(parseFloat(v.price))}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* Rating summary for current selection */}
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium text-gray-700">Rating</div>
+              {isGroupView ? (
+                <StarRow average={groupDialogStats.avg} count={groupDialogStats.count} />
+              ) : (
+                <StarRow average={ratingsMap?.[Number(selectedProduct?.id)]?.average ?? 0} count={ratingsMap?.[Number(selectedProduct?.id)]?.count ?? 0} />
+              )}
+            </div>
+
+
+            {/* Submit a rating (no account required) */}
+            <div className="rounded-lg border p-4 md:p-5">
+              <div className="mb-3 text-base md:text-lg font-semibold text-gray-800">Leave a rating</div>
+              <div className="mb-3 flex items-center gap-3">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const idx = i + 1;
+                  const active = ratingValue >= idx;
+                  return (
                     <button
-                      key={v.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm hover:bg-orange-50"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const base = selectedProduct?.baseName ?? selectedProduct?.name ?? "";
-                        setSelectedProduct({
-                          id: v.id,
-                          name: `${base} - ${(v.size || "REGULAR").charAt(0) + (v.size || "REGULAR").slice(1).toLowerCase()}`,
-                          description: v.description ?? "",
-                          image: v.image,
-                          price: v.price,
-                          variants: selectedProduct?.variants,
-                          baseName: base,
-                        });
-                      }}
+                      key={idx}
+                      type="button"
+                      className="p-2"
+                      onClick={() => setRatingValue(idx)}
+                      aria-label={`Rate ${idx} star${idx > 1 ? 's' : ''}`}
                     >
-                      <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
-                        {(v.size || "REGULAR").charAt(0) + (v.size || "REGULAR").slice(1).toLowerCase()}
-                      </span>
-                      <span className="font-medium">{formatPHP(parseFloat(v.price))}</span>
+                      <Star className={active ? "h-7 w-7 md:h-8 md:w-8 text-yellow-500 fill-yellow-500" : "h-7 w-7 md:h-8 md:w-8 text-gray-300"} />
                     </button>
-                  ))}
+                  );
+                })}
+                {ratingValue > 0 && (
+                  <span className="text-base text-gray-700">{ratingValue}/5</span>
+                )}
+              </div>
+              <textarea
+                className="w-full rounded-md border p-3 text-base min-h-[120px]"
+                placeholder="Optional comment"
+                rows={5}
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+              />
+              <div className="mt-2 flex justify-end">
+                <Button
+                  disabled={rateMutation.isPending || ratingValue < 1 || !selectedProduct || !ratingTargetId}
+                  onClick={async () => {
+                    if (!selectedProduct || ratingValue < 1 || !ratingTargetId) return;
+                    await rateMutation.mutateAsync({
+                      productId: ratingTargetId,
+                      rating: ratingValue,
+                      comment: ratingComment || undefined,
+                    });
+                    setRatingValue(0);
+                    setRatingComment("");
+                  }}
+                  className="bg-[#f8610e] hover:bg-[#e2550a] h-10 md:h-11 px-5 md:px-6 text-sm md:text-base"
+                >
+                  {rateMutation.isPending ? "Submitting…" : "Submit Rating"}
+                </Button>
+              </div>
+            </div>
+          </div>
+            {false && Array.isArray(selectedProduct?.variants) && (selectedProduct?.variants?.length ?? 0) > 0 && (
+              <div className="mt-2">
+                <div className="mb-2 text-sm md:text-base font-medium text-gray-700">Variants</div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {(selectedProduct?.variants ?? [])
+                    .slice()
+                    .sort((a: any, b: any) => (a.size || "").localeCompare(b.size || ""))
+                    .map((v: any) => {
+                      const base = selectedProduct?.baseName ?? selectedProduct?.name ?? "";
+                      const isActive = Number(selectedProduct?.id) === Number(v.id);
+                      const sizeLabel = (v.size || "SMALL").charAt(0) + (v.size || "SMALL").slice(1).toLowerCase();
+                      const priceText = formatPHP(parseFloat(v.price));
+                      const rating = ratingsMap?.[Number(v.id)];
+                      return (
+                        <Card
+                          key={v.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedProduct({
+                              id: v.id,
+                              name: `${base} - ${sizeLabel}`,
+                              description: v.description ?? "",
+                              image: v.image,
+                              price: v.price,
+                              variants: selectedProduct?.variants,
+                              baseName: base,
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              setSelectedProduct({
+                                id: v.id,
+                                name: `${base} - ${sizeLabel}`,
+                                description: v.description ?? "",
+                                image: v.image,
+                                price: v.price,
+                                variants: selectedProduct?.variants,
+                                baseName: base,
+                              });
+                            }
+                          }}
+                          className={`group overflow-hidden rounded-2xl border shadow-md transition hover:shadow-lg focus:outline-none ${
+                            isActive ? "ring-2 ring-[#f8610e]/50" : ""
+                          }`}
+                        >
+                          <div className="relative h-48 md:h-56 w-full">
+                            <Image src={v.image || "/placeholder.svg"} alt={`${base} - ${sizeLabel}`} fill unoptimized className="object-cover" />
+                          </div>
+                          <CardContent className="p-5">
+                            <div className="mb-3 flex items-center justify-between">
+                              <span className="rounded bg-orange-100 px-2.5 py-0.5 text-xs md:text-sm text-orange-700">{sizeLabel}</span>
+                              <span className="text-lg md:text-xl font-semibold text-[#f8610e]">{priceText}</span>
+                            </div>
+                            <StarRow average={rating?.average ?? 0} count={rating?.count ?? 0} />
+                            {v?.description && (
+                              <p className="mt-3 text-sm md:text-base text-gray-600">
+                                {v.description}
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                 </div>
               </div>
             )}

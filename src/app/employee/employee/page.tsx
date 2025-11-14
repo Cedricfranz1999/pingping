@@ -140,7 +140,7 @@ const EmployeePage = () => {
     },
   });
 
-  const deleteMutation = api.employee.delete.useMutation({
+  const deleteMutation = api.employee.remove.useMutation({
     onSuccess: () => {
       toast({
         title: "Success!",
@@ -955,3 +955,4 @@ const EmployeePage = () => {
 };
 
 export default EmployeePage;
+

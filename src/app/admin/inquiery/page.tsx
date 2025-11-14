@@ -92,7 +92,7 @@ const Order = () => {
     },
   });
 
-  const deleteOrder = api.orders.delete.useMutation({
+  const deleteOrder = api.orders.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
@@ -565,3 +565,4 @@ const Order = () => {
   );
 };
 export default Order;
+

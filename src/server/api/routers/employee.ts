@@ -172,7 +172,7 @@ export const employeeRouter = createTRPCRouter({
     }),
 
   // Delete employee (soft delete to avoid FK violations)
-  delete: publicProcedure
+  remove: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return await db.employee.update({

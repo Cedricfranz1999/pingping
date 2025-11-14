@@ -111,7 +111,7 @@ const AttendancePage: NextPage = () => {
     },
   });
 
-  // const deleteAttendance = api.attendanceRecord.delete.useMutation({
+  // const deleteAttendance = api.attendanceRecord.remove.useMutation({
   //   onSuccess: () => {
   //     void refetch();
   //     setIsDeleteModalOpen(false);
@@ -537,3 +537,4 @@ const AttendancePage: NextPage = () => {
 };
 
 export default AttendancePage;
+

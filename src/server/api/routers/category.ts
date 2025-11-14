@@ -33,7 +33,7 @@ export const categoriesRouter = createTRPCRouter({
     }),
 
   // Delete category
-  delete: publicProcedure
+  remove: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return await db.category.delete({

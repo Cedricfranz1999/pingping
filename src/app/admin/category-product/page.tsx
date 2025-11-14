@@ -48,7 +48,7 @@ const CategoriesPage: NextPage = () => {
     },
   });
 
-  const deleteCategory = api.categories.delete.useMutation({
+  const deleteCategory = api.categories.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
@@ -203,3 +203,4 @@ const CategoriesPage: NextPage = () => {
 };
 
 export default CategoriesPage;
+

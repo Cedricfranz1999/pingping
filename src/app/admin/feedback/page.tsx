@@ -61,7 +61,7 @@ const FeedbackPage: NextPage = () => {
     limit,
   });
 
-  const deleteFeedback = api.feedback.delete.useMutation({
+  const deleteFeedback = api.feedback.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
@@ -335,3 +335,4 @@ const FeedbackPage: NextPage = () => {
 };
 
 export default FeedbackPage;
+

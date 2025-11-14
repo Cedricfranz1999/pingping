@@ -58,10 +58,13 @@ export const ordersProductRouter = createTRPCRouter({
           items: {
             include: {
               product: {
-                include: {
-                  categories: {
-                    include: { category: true },
-                  },
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  price: true,
+                  productType: true,
+                  categories: { select: { category: true } },
                 },
               },
             },
@@ -145,7 +148,7 @@ export const ordersProductRouter = createTRPCRouter({
         include: {
           orderItems: {
             include: {
-              product: true,
+              product: { select: { id: true, name: true, image: true, price: true } },
             },
           },
         },
@@ -175,7 +178,7 @@ export const ordersProductRouter = createTRPCRouter({
         include: {
           orderItems: {
             include: {
-              product: true,
+              product: { select: { id: true, name: true, image: true, price: true } },
             },
           },
         },
@@ -197,7 +200,7 @@ export const ordersProductRouter = createTRPCRouter({
         include: {
           orderItems: {
             include: {
-              product: true,
+              product: { select: { id: true, name: true, image: true, price: true } },
             },
           },
           user: true,
@@ -283,7 +286,7 @@ createOrderWithoutUser: publicProcedure
       include: {
         orderItems: {
           include: {
-            product: true,
+            product: { select: { id: true, name: true, image: true, price: true } },
           },
         },
       },

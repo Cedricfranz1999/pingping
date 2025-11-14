@@ -281,7 +281,27 @@ async function main() {
       Password: "admin123", // Note: matches your schema's capital P in Password
     },
   });
-  console.log(`✅ Created default admin`);
+  console.log(`✅ Created default admin
+  // Seed some Product Ratings (lightweight, skip if table missing)
+  try {
+    const productsForRatings = allProducts.slice(0, Math.min(12, allProducts.length));
+    for (const product of productsForRatings) {
+      const howMany = faker.number.int({ min: 1, max: 4 });
+      for (let i = 0; i < howMany; i++) {
+        await prisma.productRating.create({
+          data: {
+            productId: product.id,
+            userId: null,
+            rating: faker.number.float({ min: 3, max: 5, multipleOf: 0.5 }) as unknown as number,
+            comment: faker.lorem.sentence(),
+          },
+        });
+      }
+    }
+    console.log(Seeded  products with ratings);
+  } catch (err) {
+    console.warn('Skipping ratings seed (table may not exist yet):', (err as Error).message);
+  }`);
 
   console.log("🌱 Seeding completed successfully!");
 }
@@ -294,3 +314,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

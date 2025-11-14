@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { type Product, type Category } from "@prisma/client";
+import { type Category } from "@prisma/client";
 import {
   ChevronDown,
   ChevronUp,
@@ -58,7 +58,17 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 
-type ProductWithCategories = Product & {
+type ProductWithCategories = {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  stock: number;
+  image: string | null;
+  productType: ProductType;
+  createdAt: Date;
+  updatedAt: Date;
+  size?: string | null;
   categories: {
     category: Category;
   }[];
@@ -132,7 +142,7 @@ const ProductsPage: NextPage = () => {
     },
   });
 
-  const deleteProduct = api.product.delete.useMutation({
+  const deleteProduct = api.product.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
@@ -910,3 +920,4 @@ const ProductsPage: NextPage = () => {
 };
 
 export default ProductsPage;
+

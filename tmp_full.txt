@@ -44,7 +44,7 @@ const ReportsPage = () => {
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>(
     { from: undefined, to: undefined }
   );
-  // â¬‡ï¸ Removed stockFilter state
+  // ⬇️ Removed stockFilter state
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>();
 
   // --- PRODUCTS (fetch ALL) ---
@@ -57,7 +57,7 @@ const ReportsPage = () => {
       skip: 0,
       take: 100000,
       search,
-      // â¬‡ï¸ Removed stockFilter from query args
+      // ⬇️ Removed stockFilter from query args
       dateFrom: dateRange.from,
       dateTo: dateRange.to,
       categoryId: categoryFilter,
@@ -116,10 +116,10 @@ const ReportsPage = () => {
       dateTo: fbDateRange.to,
     });
 
-  // --- EXPORTS (PDF) ---
-  const exportProductsMutation = api.reports.exportProductsPDF.useMutation();
-  const exportAttendanceMutation = api.attendanceRecord.exportPDF.useMutation();
-  const exportFeedbackMutation = api.feedback.exportPDF.useMutation();
+  // --- EXPORTS ---
+  const exportProductsMutation = api.reports.exportProductsCSV.useMutation();
+  const exportAttendanceMutation = api.attendanceRecord.exportCSV.useMutation();
+  const exportFeedbackMutation = api.feedback.exportCSV.useMutation();
 
   // Open print-friendly PDF view in new tab
   const openPrint = (section: "products" | "attendance" | "feedback") => {
@@ -144,13 +144,8 @@ const ReportsPage = () => {
     window.open(`/admin/reports/print?${params.toString()}`, "_blank");
   };
 
-  // PDF downloader
-  const downloadPDF = (base64: string, filename: string) => {
-    const byteChars = atob(base64);
-    const byteNumbers = new Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: "application/pdf" });
+  const downloadCSV = (csvData: string, filename: string) => {
+    const blob = new Blob([csvData], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -161,46 +156,46 @@ const ReportsPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  // New PDF export handlers
-  const handleExportProductsPDF = () => {
+  const handleExportProductsCSV = () => {
     exportProductsMutation.mutate(
       {
         search,
+        // ⬇️ Removed stockFilter from export args
         dateFrom: dateRange.from,
         dateTo: dateRange.to,
         categoryId: categoryFilter,
       } as any,
       {
-        onSuccess: (data: { pdfBase64: string; filename?: string }) => {
-          downloadPDF(data.pdfBase64, data.filename ?? `products-export-${format(new Date(), "yyyy-MM-dd")}.pdf`);
-          toast({ title: "Export Successful", description: "Products PDF downloaded" });
+        onSuccess: (data: { csv: string; }) => {
+          downloadCSV(data.csv, `products-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
+          toast({ title: "Export Successful", description: "Products data has been exported to CSV" });
         },
         onError: () => {
-          toast({ title: "Export Failed", description: "Failed to export products PDF", variant: "destructive" });
+          toast({ title: "Export Failed", description: "Failed to export products data", variant: "destructive" });
         },
       },
     );
   };
 
-  const handleExportAttendancePDF = () => {
+  const handleExportAttendanceCSV = () => {
     exportAttendanceMutation.mutate(
       {
         search: attSearch || undefined,
         date: attDateMidday ?? undefined,
       } as any,
       {
-        onSuccess: (data: { pdfBase64: string; filename?: string }) => {
-          downloadPDF(data.pdfBase64, data.filename ?? `attendance-export-${format(new Date(), "yyyy-MM-dd")}.pdf`);
-          toast({ title: "Export Successful", description: "Attendance PDF downloaded" });
+        onSuccess: (data: { csv: string; }) => {
+          downloadCSV(data.csv, `attendance-export-${format(new Date(), "yyyy-MM-dd")}.csv`);
+          toast({ title: "Export Successful", description: "Attendance has been exported to CSV" });
         },
         onError: () => {
-          toast({ title: "Export Failed", description: "Failed to export attendance PDF", variant: "destructive" });
+          toast({ title: "Export Failed", description: "Failed to export attendance", variant: "destructive" });
         },
       },
     );
   };
 
-  const handleExportFeedbackPDF = () => {
+  const handleExportFeedbackCSV = () => {
     exportFeedbackMutation.mutate(
       {
         search: fbSearch || undefined,
@@ -209,21 +204,24 @@ const ReportsPage = () => {
         dateTo: fbDateRange.to,
       },
       {
-        onSuccess: (data: { pdfBase64: string; filename?: string }) => {
-          downloadPDF(data.pdfBase64, data.filename ?? `feedback-export-${new Date().toISOString().slice(0, 10)}.pdf`);
-          toast({ title: "Export Successful", description: "Feedback PDF downloaded" });
+        onSuccess: (data: { csv: BlobPart; }) => {
+          const blob = new Blob([data.csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `feedback-export-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          toast({ title: "Export Successful", description: "Feedback has been exported to CSV" });
         },
         onError: () => {
-          toast({ title: "Export Failed", description: "Failed to export feedback PDF", variant: "destructive" });
+          toast({ title: "Export Failed", description: "Failed to export feedback", variant: "destructive" });
         },
       }
     );
   };
-
-  // removed legacy CSV handlers
-  const handleExportProductsCSV = () => {};
-const handleExportAttendanceCSV = () => {};
-const handleExportFeedbackCSV = () => {};
 
   if (summaryLoading || categoriesLoading) {
     return (
@@ -262,8 +260,16 @@ const handleExportFeedbackCSV = () => {};
             {/* Top exports only (date range hidden) */}
             <div className="ml-auto flex flex-nowrap items-center gap-2 sm:gap-3">
               <Button
-                onClick={handleExportProductsPDF}
+                onClick={handleExportProductsCSV}
                 disabled={exportProductsMutation.isPending}
+                variant="secondary"
+                size="sm"
+                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
+              >
+                Export Products
+              </Button>
+              <Button
+                onClick={() => openPrint("products")}
                 variant="secondary"
                 size="sm"
                 className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
@@ -271,8 +277,16 @@ const handleExportFeedbackCSV = () => {};
                 Export Products PDF
               </Button>
               <Button
-                onClick={handleExportAttendancePDF}
+                onClick={handleExportAttendanceCSV}
                 disabled={exportAttendanceMutation.isPending}
+                variant="secondary"
+                size="sm"
+                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
+              >
+                Export Attendance
+              </Button>
+              <Button
+                onClick={() => openPrint("attendance")}
                 variant="secondary"
                 size="sm"
                 className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
@@ -280,8 +294,16 @@ const handleExportFeedbackCSV = () => {};
                 Export Attendance PDF
               </Button>
               <Button
-                onClick={handleExportFeedbackPDF}
+                onClick={handleExportFeedbackCSV}
                 disabled={exportFeedbackMutation.isPending}
+                variant="secondary"
+                size="sm"
+                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
+              >
+                Export Feedback
+              </Button>
+              <Button
+                onClick={() => openPrint("feedback")}
                 variant="secondary"
                 size="sm"
                 className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
@@ -312,7 +334,7 @@ const handleExportFeedbackCSV = () => {};
                 </div>
                 {/* <div className="flex items-center gap-2">
                   <Button
-                    onClick={handleExportProductsPDF}
+                    onClick={handleExportProductsCSV}
                     disabled={exportProductsMutation.isPending}
                     variant="outline"
                     size="sm"
@@ -351,7 +373,7 @@ const handleExportFeedbackCSV = () => {};
                 </div>
                 {/* <div className="flex items-center gap-2">
                   <Button
-                    onClick={handleExportAttendancePDF}
+                    onClick={handleExportAttendanceCSV}
                     disabled={exportAttendanceMutation.isPending}
                     variant="outline"
                     size="sm"
@@ -393,7 +415,7 @@ const handleExportFeedbackCSV = () => {};
                 />
               </div>
 
-              {/* â¬‡ï¸ Removed Stock Status dropdown completely */}
+              {/* ⬇️ Removed Stock Status dropdown completely */}
 
               <Select
                 value={categoryFilter?.toString() ?? ""}
@@ -461,7 +483,7 @@ const handleExportFeedbackCSV = () => {};
                 Product Management
               </CardTitle>
               <Button
-                onClick={handleExportProductsPDF}
+                onClick={handleExportProductsCSV}
                 disabled={exportProductsMutation.isPending}
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
@@ -492,7 +514,7 @@ const handleExportFeedbackCSV = () => {};
                       <TableHead className="font-semibold text-gray-700">Categories</TableHead>
                       {/* Stock column hidden previously; keep hidden */}
                       <TableHead className="font-semibold text-gray-700">Price</TableHead>
-                      {/* â¬‡ï¸ Removed Status column */}
+                      {/* ⬇️ Removed Status column */}
                     </TableRow>
                   </TableHeader>
 
@@ -533,7 +555,7 @@ const handleExportFeedbackCSV = () => {};
                           </span>
                         </TableCell>
 
-                        {/* â¬‡ï¸ Removed Status cell */}
+                        {/* ⬇️ Removed Status cell */}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -559,7 +581,7 @@ const handleExportFeedbackCSV = () => {};
                 Employee Attendance
               </CardTitle>
               <Button
-                onClick={handleExportAttendancePDF}
+                onClick={handleExportAttendanceCSV}
                 disabled={exportAttendanceMutation.isPending}
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
@@ -630,7 +652,7 @@ const handleExportFeedbackCSV = () => {};
                       const hours =
                         row.timeIn && row.timeOut
                           ? ((new Date(row.timeOut).getTime() - new Date(row.timeIn).getTime()) / 36e5).toFixed(2)
-                          : "â€”";
+                          : "—";
                       const status = String(row.status ?? "").toLowerCase();
                       return (
                         <TableRow key={row.id} className="hover:bg-orange-50/40">
@@ -642,9 +664,9 @@ const handleExportFeedbackCSV = () => {};
                               {row.employee?.username ?? row.employeeId}
                             </div>
                           </TableCell>
-                          <TableCell>{row.date ? format(new Date(row.date), "MMM dd, yyyy") : "â€”"}</TableCell>
-                          <TableCell>{row.timeIn ? format(new Date(row.timeIn), "hh:mm a") : "â€”"}</TableCell>
-                          <TableCell>{row.timeOut ? format(new Date(row.timeOut), "hh:mm a") : "â€”"}</TableCell>
+                          <TableCell>{row.date ? format(new Date(row.date), "MMM dd, yyyy") : "—"}</TableCell>
+                          <TableCell>{row.timeIn ? format(new Date(row.timeIn), "hh:mm a") : "—"}</TableCell>
+                          <TableCell>{row.timeOut ? format(new Date(row.timeOut), "hh:mm a") : "—"}</TableCell>
                           <TableCell>
                             <Badge
                               className={cn(
@@ -654,7 +676,7 @@ const handleExportFeedbackCSV = () => {};
                                 status === "absent" && "bg-red-100 text-red-700",
                               )}
                             >
-                              {row.status ?? "â€”"}
+                              {row.status ?? "—"}
                             </Badge>
                           </TableCell>
                           <TableCell>{hours}</TableCell>
@@ -675,7 +697,7 @@ const handleExportFeedbackCSV = () => {};
             {attTotal > attLimit && (
               <div className="flex items-center justify-between pt-2">
                 <div className="text-sm text-gray-600">
-                  Showing {attStart + 1}â€“{Math.min(attStart + attLimit, attTotal)} of {attTotal}
+                  Showing {attStart + 1}–{Math.min(attStart + attLimit, attTotal)} of {attTotal}
                 </div>
                 <div className="space-x-2">
                   <Button variant="outline" size="sm" disabled={attPage === 1} onClick={() => setAttPage(p => Math.max(1, p - 1))}>Previous</Button>
@@ -696,7 +718,7 @@ const handleExportFeedbackCSV = () => {};
               </CardTitle>
 
               <Button
-                onClick={handleExportFeedbackPDF}
+                onClick={handleExportFeedbackCSV}
                 disabled={exportFeedbackMutation.isPending}
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
@@ -762,11 +784,11 @@ const handleExportFeedbackCSV = () => {};
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
                   <SelectItem value="6">All ratings</SelectItem>
-                  <SelectItem value="5">5â˜…</SelectItem>
-                  <SelectItem value="4">4â˜…</SelectItem>
-                  <SelectItem value="3">3â˜…</SelectItem>
-                  <SelectItem value="2">2â˜…</SelectItem>
-                  <SelectItem value="1">1â˜…</SelectItem>
+                  <SelectItem value="5">5★</SelectItem>
+                  <SelectItem value="4">4★</SelectItem>
+                  <SelectItem value="3">3★</SelectItem>
+                  <SelectItem value="2">2★</SelectItem>
+                  <SelectItem value="1">1★</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -795,7 +817,7 @@ const handleExportFeedbackCSV = () => {};
                           <div className="text-xs text-gray-500">{fb.email}</div>
                         </TableCell>
                         <TableCell>
-                          <div>{fb.contact || "â€”"}</div>
+                          <div>{fb.contact || "—"}</div>
                           <div className="text-xs text-gray-500">{fb.address || ""}</div>
                         </TableCell>
                         <TableCell>
@@ -828,7 +850,7 @@ const handleExportFeedbackCSV = () => {};
             {feedbackData && feedbackData.pagination?.totalPages > 1 && (
               <div className="flex items-center justify-between pt-2">
                 <div className="text-sm text-gray-600">
-                  Showing {(fbPage - 1) * fbLimit + 1}â€“
+                  Showing {(fbPage - 1) * fbLimit + 1}–
                   {Math.min(fbPage * fbLimit, feedbackData.pagination.total)} of {feedbackData.pagination.total}
                 </div>
                 <div className="space-x-2">
@@ -845,7 +867,3 @@ const handleExportFeedbackCSV = () => {};
 };
 
 export default ReportsPage;
-
-
-
-

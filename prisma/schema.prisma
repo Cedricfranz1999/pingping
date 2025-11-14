@@ -32,9 +32,8 @@ model Product {
   description String
   stock       Int
   price       String
-  /// Variant or size label to distinguish similar products (e.g., "250g", "Large")
-  size        String            @default("REGULAR")
   productType ProductType
+  size        String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   cartItems   CartItem[]
@@ -42,6 +41,21 @@ model Product {
   categories  ProductCategory[]
   logs        ProductLog[]
   ratings     ProductRating[]
+}
+
+model ProductRating {
+  id        Int       @id @default(autoincrement())
+  productId Int
+  userId    Int?
+  rating    Float
+  comment   String?
+  createdAt DateTime  @default(now())
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([userId])
 }
 
 model User {
@@ -132,7 +146,7 @@ model ProductLog {
   newStock   Int?
   newPrice   String?
   timestamp  DateTime      @default(now())
-  employee   Employee      @relation(fields: [employeeId], references: [id])
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   product    Product       @relation(fields: [productId], references: [id])
 
   @@index([productId])
@@ -160,7 +174,7 @@ model Attendance {
   status     AttendanceStatus?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  employee   Employee          @relation(fields: [employeeId], references: [id])
+  employee   Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([employeeId, date])
 }
@@ -192,21 +206,6 @@ model Feedback {
   star      Int
   feedback  String
   createdAt DateTime @default(now())
-}
-
-model ProductRating {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  userId    Int?
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
-
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User?    @relation(fields: [userId], references: [id])
-
-  @@index([productId])
-  @@index([userId])
 }
 
 model Order {

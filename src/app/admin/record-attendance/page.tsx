@@ -113,14 +113,14 @@ const AttendancePage: NextPage = () => {
     },
   });
 
-  const deleteAttendance = api.attendanceRecord.delete.useMutation({
+  const deleteAttendance = api.attendanceRecord.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
     },
   });
 
-  const deleteManyAttendance = api.attendanceRecord.deleteMany.useMutation({
+  const deleteManyAttendance = api.attendanceRecord.removeMany.useMutation({
     onSuccess: () => {
       void refetch();
       setIsBulkDeleteOpen(false);
@@ -630,3 +630,4 @@ function getStatusVariant(status?: string) {
       return "outline" as const;
   }
 }
+

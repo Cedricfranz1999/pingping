@@ -4,6 +4,8 @@ import Image from "next/image";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { Star } from "lucide-react";
 import { useState } from "react";
+import { Button } from "~/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "~/components/ui/dialog";
 
 const StarRow = ({ average }: { average: number }) => {
   const full = Math.floor(average);
@@ -18,25 +20,25 @@ const StarRow = ({ average }: { average: number }) => {
   );
 };
 
-type AllRatings = RouterOutputs['product']['getAllRatings'];
-type RatingItem = AllRatings['ratings'][number];
+type AllRatings = RouterOutputs["product"]["getAllRatings"];
+type RatingItem = AllRatings["ratings"][number];
 
 export default function AdminRatingsPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
   const { data, isLoading } = api.product.getAllRatings.useQuery({ page, limit });
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewItem, setViewItem] = useState<RatingItem | null>(null);
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Product Ratings</h1>
-        <div className="text-sm text-gray-500">
-          Total: {data?.pagination.total ?? 0}
-        </div>
+        <div className="text-sm text-gray-500">Total: {data?.pagination.total ?? 0}</div>
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-gray-500">Loading ratings…</div>
+        <div className="py-12 text-center text-gray-500">Loading ratings...</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -46,6 +48,7 @@ export default function AdminRatingsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Rating</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Comment</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
@@ -68,8 +71,11 @@ export default function AdminRatingsPage() {
                       <span className="text-sm text-gray-600">({r.rating})</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{r.comment ?? ""}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{r.comment ? (r.comment.length > 80 ? r.comment.slice(0, 77) + "…" : r.comment) : ""}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{new Date(r.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <Button size="sm" variant="outline" onClick={() => { setViewItem(r); setViewOpen(true); }}>View</Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -79,23 +85,25 @@ export default function AdminRatingsPage() {
 
       {data && data.pagination.totalPages > 1 && (
         <div className="mt-4 flex justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
-          >
-            Prev
-          </button>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-md border px-3 py-1 text-sm disabled:opacity-50">Prev</button>
           <div className="text-sm text-gray-600">Page {page} of {data.pagination.totalPages}</div>
-          <button
-            onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
-            disabled={page === data.pagination.totalPages}
-            className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
-          >
-            Next
-          </button>
+          <button onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))} disabled={page === data.pagination.totalPages} className="rounded-md border px-3 py-1 text-sm disabled:opacity-50">Next</button>
         </div>
       )}
+
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Customer Comment</DialogTitle>
+            <DialogDescription>{viewItem?.product?.name ? `Product: ${viewItem.product.name}` : ""}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2"><StarRow average={viewItem?.rating ?? 0} /><span className="text-sm text-gray-600">({viewItem?.rating ?? 0})</span></div>
+            <div className="rounded-md border bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">{viewItem?.comment || "No comment provided."}</div>
+            <div className="text-xs text-gray-500">{viewItem ? new Date(viewItem.createdAt).toLocaleString() : ""}</div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

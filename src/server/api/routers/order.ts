@@ -123,7 +123,7 @@ export const ordersRouter = createTRPCRouter({
     }),
 
   // Delete order
-  delete: publicProcedure
+  remove: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       return await db.order.delete({
