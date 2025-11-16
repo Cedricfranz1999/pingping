@@ -282,7 +282,7 @@ async function main() {
     },
   });
   console.log(`✅ Created default admin
-  // Seed some Product Ratings (lightweight, skip if table missing)
+  `); // Seed some Product Ratings (lightweight, skip if table missing)
   try {
     const productsForRatings = allProducts.slice(0, Math.min(12, allProducts.length));
     for (const product of productsForRatings) {
@@ -298,10 +298,10 @@ async function main() {
         });
       }
     }
-    console.log(Seeded  products with ratings);
+    console.log('Seeded products with ratings');
   } catch (err) {
     console.warn('Skipping ratings seed (table may not exist yet):', (err as Error).message);
-  }`);
+  }
 
   console.log("🌱 Seeding completed successfully!");
 }
