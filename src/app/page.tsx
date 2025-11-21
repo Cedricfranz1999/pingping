@@ -210,6 +210,9 @@ export default function ImprovedHomePage() {
     return ["All", ...cats];
   }, [groupedByCategory]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [showAll, setShowAll] = useState(false);
+
+  const catToId = (cat: string) => `cat-${String(cat).trim().toLowerCase().replace(/\s+/g, '-')}`;
 
   // Helpers to render product cards and sections
   const formatPHP = (amount: number) =>
@@ -224,8 +227,8 @@ export default function ImprovedHomePage() {
     const sorted = variants
       .slice()
       .sort((a: any, b: any) => {
-        // Prefer size order SMALL < MEDIUM < LARGE when available; fallback to price asc
-        const order = { SMALL: 0, MEDIUM: 1, LARGE: 2 } as Record<string, number>;
+        // Prefer size order REGULAR < SMALL < MEDIUM < LARGE; fallback to price asc
+        const order = { REGULAR: 0, SMALL: 1, MEDIUM: 2, LARGE: 3 } as Record<string, number>;
         const as = order[(a?.size || "").toUpperCase()] ?? 99;
         const bs = order[(b?.size || "").toUpperCase()] ?? 99;
         if (as !== bs) return as - bs;
@@ -242,6 +245,8 @@ export default function ImprovedHomePage() {
       .filter((n: number) => !Number.isNaN(n));
     const min = Math.min(...prices);
     const max = Math.max(...prices);
+    const sizedVariants = variants.filter((v: any) => !!(v?.size && String(v.size).trim().length > 0));
+    const shouldShowVariantHover = sizedVariants.length > 0;
     const groupStats = computeGroupRating(variants);
     return (
       <Card
@@ -292,35 +297,7 @@ export default function ImprovedHomePage() {
               ? `${formatPHP(min)} - ${formatPHP(max)}`
               : formatPHP(prices[0] ?? 0)}
           </div>
-          {variants.length > 0 && (
-            <div className="mt-2 hidden group-hover:block">
-              <div className="mb-1 text-xs font-medium text-gray-500">Variants</div>
-              <div className="grid grid-cols-2 gap-2">
-                {variants
-                  .slice(0, 4)
-                  .slice()
-                  .sort((a: any, b: any) => (a.size || "").localeCompare(b.size || ""))
-                  .map((v: any) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-1"
-                    >
-                      <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">
-                        {(v.size || "SMALL").charAt(0) + (v.size || "SMALL").slice(1).toLowerCase()}
-                      </span>
-                      <span className="text-xs font-medium">
-                        {formatPHP(parseFloat(v.price))}
-                      </span>
-                    </div>
-                  ))}
-                {variants.length > 4 && (
-                  <div className="col-span-2 text-right text-[11px] text-gray-500">
-                    +{variants.length - 4} more
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Variants on hover removed by request; show on click only */}
         </CardContent>
       </Card>
     );
@@ -329,7 +306,8 @@ export default function ImprovedHomePage() {
   // Single-variant card (one card per product row/variant)
   const renderVariantCard = (v: any) => {
     const base = (v?.name ?? "").trim();
-    const sizeLabel = (v?.size || "SMALL").charAt(0) + (v?.size || "SMALL").slice(1).toLowerCase();
+    const sizeLabel = v?.size ? String(v.size).charAt(0) + String(v.size).slice(1).toLowerCase() : "";
+    const displayName = sizeLabel ? `${base} - ${sizeLabel}` : base;
     const priceNum = parseFloat(v?.price ?? 0);
     const priceText = formatPHP(Number.isNaN(priceNum) ? 0 : priceNum);
     const rating = ratingsMap?.[Number(v?.id)];
@@ -344,7 +322,7 @@ export default function ImprovedHomePage() {
         onClick={() => {
           setSelectedProduct({
             id: v.id,
-            name: `${base} - ${sizeLabel}`,
+            name: displayName,
             description: v.description ?? "",
             image: v.image,
             price: v.price,
@@ -358,7 +336,7 @@ export default function ImprovedHomePage() {
           if (e.key === "Enter" || e.key === " ") {
             setSelectedProduct({
               id: v.id,
-              name: `${base} - ${sizeLabel}`,
+              name: displayName,
               description: v.description ?? "",
               image: v.image,
               price: v.price,
@@ -372,12 +350,16 @@ export default function ImprovedHomePage() {
         className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl px-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#f8610e]/40"
       >
         <div className="relative h-56 w-full">
-          <Image src={v?.image || "/placeholder.svg"} alt={`${base} - ${sizeLabel}`} fill unoptimized className="object-cover" />
+          <Image src={v?.image || "/placeholder.svg"} alt={displayName} fill unoptimized className="object-cover" />
         </div>
         <CardContent className="flex flex-grow flex-col gap-3 p-6">
           <h4 className="text-xl font-bold text-gray-900 line-clamp-1">{base}</h4>
           <div className="flex items-center justify-between">
-            <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{sizeLabel}</span>
+            {sizeLabel ? (
+              <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{sizeLabel}</span>
+            ) : (
+              <span />
+            )}
             <span className="text-lg font-semibold text-[#f8610e]">{priceText}</span>
           </div>
           <p className="text-sm leading-relaxed text-gray-600 line-clamp-3">{v?.description ?? ""}</p>
@@ -400,12 +382,59 @@ export default function ImprovedHomePage() {
     </div>
   );
 
+  const renderAllFull = () => {
+    if (!showVariantsAsCards) {
+      return (
+        <div className="space-y-10">
+          {groupedByCategory
+            .slice()
+            .sort((a, b) => (a.category || "").localeCompare(b.category || ""))
+            .map((g) => (
+              <div key={g.category} className="space-y-4" id={catToId(g.category)}>
+                <h3 className="text-2xl font-bold text-[#6d2803]">{g.category}</h3>
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                  {g.items
+                    .slice()
+                    .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+                    .map(({ name, variants }) => renderProductCard(name, variants))}
+                </div>
+              </div>
+            ))}
+        </div>
+      );
+    }
+    // Variant-per-card, but still grouped by category
+    return (
+      <div className="space-y-10">
+        {categoryList
+          .filter((c) => c !== "All")
+          .map((cat) => {
+            const items = (allProducts ?? []).filter((p: any) => {
+              const names = (p?.categories ?? [])
+                .map((c: any) => c?.category?.name)
+                .filter(Boolean) as string[];
+              const list = names?.length ? names : ["Uncategorized"];
+              return list.includes(cat);
+            });
+            return (
+              <div key={cat} className="space-y-4" id={catToId(cat)}>
+                <h3 className="text-2xl font-bold text-[#6d2803]">{cat}</h3>
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                  {items.map((v: any) => renderVariantCard(v))}
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    );
+  };
+
   const renderCategory = (cat: string) => {
     if (!showVariantsAsCards) {
       const group = groupedByCategory.find((g) => g.category === cat);
       if (!group) return null;
       return (
-        <div className="space-y-4" id={`cat-${cat}`}>
+        <div className="space-y-4" id={catToId(cat)}>
           <h3 className="text-2xl font-bold text-[#6d2803]">{cat}</h3>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {group.items
@@ -425,7 +454,7 @@ export default function ImprovedHomePage() {
       return list.includes(cat);
     });
     return (
-      <div className="space-y-4" id={`cat-${cat}`}>
+      <div className="space-y-4" id={catToId(cat)}>
         <h3 className="text-2xl font-bold text-[#6d2803]">{cat}</h3>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((v: any) => renderVariantCard(v))}
@@ -875,7 +904,24 @@ export default function ImprovedHomePage() {
                   key={cat}
                   variant={selectedCategory === cat ? "default" : "outline"}
                   className={`${selectedCategory === cat ? "bg-[#f8610e] hover:bg-[#f8610e]/90 text-white" : "text-[#6d2803]"} rounded-full px-4 py-2 text-base font-semibold tracking-wide`}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => {
+                    if (cat === 'All') {
+                      setSelectedCategory('All');
+                      return;
+                    }
+                    if (showAll) {
+                      // Keep full view and scroll to the category section
+                      setSelectedCategory('All');
+                      setTimeout(() => {
+                        const el = document.getElementById(catToId(cat));
+                        if (el) {
+                          window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
+                        }
+                      }, 0);
+                    } else {
+                      setSelectedCategory(cat);
+                    }
+                  }}
                 >
                   {cat}
                 </Button>
@@ -883,7 +929,37 @@ export default function ImprovedHomePage() {
             </div>
 
             {/* Content */}
-            {selectedCategory === "All" ? renderAllPreview() : renderCategory(selectedCategory)}
+            {selectedCategory === "All" ? (
+              <>
+                {showAll ? renderAllFull() : renderAllPreview()}
+                <div className="mt-6 flex justify-center">
+                  {!showAll ? (
+                    <Button
+                      className="rounded-full bg-[#f8610e] px-6 py-2 text-white hover:bg-[#f8610e]/90"
+                      onClick={() => setShowAll(true)}
+                    >
+                      View All
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="rounded-full px-6 py-2"
+                      onClick={() => {
+                        setShowAll(false);
+                        const el = document.getElementById('products');
+                        if (el) {
+                          window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
+                        }
+                      }}
+                    >
+                      Show Less
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              renderCategory(selectedCategory)
+            )}
           </div>
         )}
       </section>
@@ -982,7 +1058,7 @@ export default function ImprovedHomePage() {
                     .slice()
                     .sort((a: any, b: any) => (a.size || "").localeCompare(b.size || ""))
                     .map((v: any) => {
-                      const sizeLabel = (v.size || "SMALL").charAt(0) + (v.size || "SMALL").slice(1).toLowerCase();
+                      const sizeLabel = v?.size ? String(v.size).charAt(0) + String(v.size).slice(1).toLowerCase() : "";
                       const active = Number(selectedProduct?.id) === Number(v.id);
                       return (
                         <button
@@ -994,7 +1070,7 @@ export default function ImprovedHomePage() {
                             const base = selectedProduct?.baseName ?? selectedProduct?.name ?? "";
                             setSelectedProduct({
                               id: v.id,
-                              name: `${base} - ${sizeLabel}`,
+                              name: sizeLabel ? `${base} - ${sizeLabel}` : base,
                               description: v.description ?? "",
                               image: v.image,
                               price: v.price,
@@ -1003,7 +1079,11 @@ export default function ImprovedHomePage() {
                             });
                           }}
                         >
-                          <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{sizeLabel}</span>
+                          {sizeLabel ? (
+                            <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{sizeLabel}</span>
+                          ) : (
+                            <span />
+                          )}
                           <span className="font-medium">{formatPHP(parseFloat(v.price))}</span>
                         </button>
                       );
@@ -1083,7 +1163,7 @@ export default function ImprovedHomePage() {
                     .map((v: any) => {
                       const base = selectedProduct?.baseName ?? selectedProduct?.name ?? "";
                       const isActive = Number(selectedProduct?.id) === Number(v.id);
-                      const sizeLabel = (v.size || "SMALL").charAt(0) + (v.size || "SMALL").slice(1).toLowerCase();
+                      const sizeLabel = v?.size ? String(v.size).charAt(0) + String(v.size).slice(1).toLowerCase() : "";
                       const priceText = formatPHP(parseFloat(v.price));
                       const rating = ratingsMap?.[Number(v.id)];
                       return (

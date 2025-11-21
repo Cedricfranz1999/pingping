@@ -83,6 +83,7 @@ type ProductFormData = {
   category: string;
   productType: ProductType;
   imageFile?: File | null;
+  size: string;
 };
 
 const ProductsPage: NextPage = () => {
@@ -109,6 +110,7 @@ const ProductsPage: NextPage = () => {
     image: "",
     category: "",
     imageFile: null,
+    size: "REGULAR",
   });
 
   const {
@@ -134,7 +136,7 @@ const ProductsPage: NextPage = () => {
     },
   });
 
-  const updateProduct = api.product.update.useMutation({
+ const updateProduct = api.product.update.useMutation({
     onSuccess: () => {
       void refetch();
       setIsEditModalOpen(false);
@@ -142,7 +144,7 @@ const ProductsPage: NextPage = () => {
     },
   });
 
-  const deleteProduct = api.product.remove.useMutation({
+ const deleteProduct = api.product.remove.useMutation({
     onSuccess: () => {
       void refetch();
       setIsDeleteModalOpen(false);
@@ -159,6 +161,7 @@ const ProductsPage: NextPage = () => {
       category: "",
       productType: "TINAPA",
       imageFile: null,
+      size: "REGULAR",
     });
   };
 
@@ -182,6 +185,7 @@ const ProductsPage: NextPage = () => {
       image: product.image || "",
       category: product.categories[0]?.category.name || "",
       imageFile: null,
+      size: product.size ?? "REGULAR",
     });
     setIsEditModalOpen(true);
   };
@@ -222,6 +226,7 @@ const ProductsPage: NextPage = () => {
       image: formData.image,
       category: formData.category,
       productType: formData.productType,
+      size: (formData.size || "REGULAR").toUpperCase() as any,
     };
 
     if (isEditModalOpen && selectedProduct) {
@@ -677,6 +682,26 @@ const ProductsPage: NextPage = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="size">Size</Label>
+              <Select
+                value={formData.size}
+                onValueChange={(value) => setFormData({ ...formData, size: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["REGULAR","SMALL","MEDIUM","LARGE"]).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s.charAt(0) + s.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="image">Product Image</Label>
               <div className="flex items-center gap-2">
                 <label
@@ -826,6 +851,26 @@ const ProductsPage: NextPage = () => {
                         {category}
                       </SelectItem>
                     ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-size">Size</Label>
+              <Select
+                value={formData.size}
+                onValueChange={(value) => setFormData({ ...formData, size: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["REGULAR","SMALL","MEDIUM","LARGE"]).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s.charAt(0) + s.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

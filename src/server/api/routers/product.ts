@@ -180,7 +180,7 @@ export const productsRouter = createTRPCRouter({
         image: z.string().optional(),
         category: z.string().min(1),
         productType: z.nativeEnum(ProductType),
-        size: z.enum(["SMALL","MEDIUM","LARGE"]).default("SMALL"),
+        size: z.enum(["REGULAR","SMALL","MEDIUM","LARGE"]).default("REGULAR"),
       }),
     )
     .mutation(async ({ input }) => {
@@ -261,7 +261,7 @@ export const productsRouter = createTRPCRouter({
         image: z.string().optional(),
         category: z.string().min(1),
         productType: z.nativeEnum(ProductType),
-        size: z.enum(["SMALL","MEDIUM","LARGE"]).default("SMALL"),
+        size: z.enum(["REGULAR","SMALL","MEDIUM","LARGE"]).default("REGULAR"),
       }),
     )
     .mutation(async ({ input }) => {

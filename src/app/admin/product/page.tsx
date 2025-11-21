@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
 import { type Product, type Category, ProductType } from "@prisma/client";
@@ -66,7 +66,7 @@ type ProductWithCategories = Product & {
   }[];
 };
 
-type SizeOption = "SMALL" | "MEDIUM" | "LARGE";
+type SizeOption = "REGULAR" | "SMALL" | "MEDIUM" | "LARGE";
 
 type ProductFormData = {
   name: string;
@@ -105,8 +105,16 @@ const ProductsPage: NextPage = () => {
     image: "",
     category: "",
     imageFile: null,
-    size: "SMALL",
+    size: "REGULAR",
   });
+
+  // If the entered name matches an existing product, auto-fill description/category/image
+  const [isExistingName, setIsExistingName] = useState(false);
+  const [lockDescription, setLockDescription] = useState(false);
+  const [lockCategory, setLockCategory] = useState(false);
+  const [lockImage, setLockImage] = useState(false);
+  const [matchedDesc, setMatchedDesc] = useState("");
+  const [matchedCat, setMatchedCat] = useState("");
 
   const {
     data: productsData,
@@ -126,6 +134,45 @@ const ProductsPage: NextPage = () => {
   const { data: categories } = api.product.getCategories.useQuery();
   const { data: allProducts } = api.product.getAllSimple.useQuery();
 
+  useEffect(() => {
+    const normalizedName = formData.name.trim().toLowerCase();
+    if (!normalizedName) {
+      setIsExistingName(false);
+      return;
+    }
+    const matches = (allProducts ?? []).filter(
+      (p: any) =>
+        (p?.name ?? "").trim().toLowerCase() === normalizedName &&
+        p?.productType === formData.productType,
+    ) as ProductWithCategories[];
+
+    if (matches.length > 0) {
+      const withDesc = matches.find((m) => (m as any)?.description && String((m as any).description).trim().length > 0);
+      const desc = (withDesc as any)?.description ?? (matches[0] as any)?.description ?? "";
+      const cat = (matches[0] as any)?.categories?.[0]?.category?.name ?? "";
+      const withImage = matches.find((m: any) => (m?.image ?? "").trim().length > 0);
+      setIsExistingName(true);
+      setLockDescription(Boolean(desc && String(desc).trim().length > 0));
+      setLockCategory(Boolean(cat && String(cat).trim().length > 0));
+      setLockImage(Boolean(withImage && String(withImage.image ?? "").trim().length > 0));
+      setMatchedDesc(String(desc ?? ""));
+      setMatchedCat(String(cat ?? ""));
+      setFormData((prev) => ({
+        ...prev,
+        description: (desc && String(desc).trim().length > 0) ? desc : prev.description,
+        category: (cat && String(cat).trim().length > 0) ? cat : prev.category,
+        image: prev.image && prev.image.trim().length > 0 ? prev.image : (withImage?.image ?? prev.image),
+      }));
+    } else {
+      setIsExistingName(false);
+      setLockDescription(false);
+      setLockCategory(false);
+      setLockImage(false);
+      setMatchedDesc("");
+      setMatchedCat("");
+    }
+  }, [formData.name, formData.productType, allProducts]);
+
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<ProductWithCategories[]>([]);
   const [hasExactDuplicate, setHasExactDuplicate] = useState(false);
@@ -133,7 +180,7 @@ const ProductsPage: NextPage = () => {
   const [duplicateBlockedOpen, setDuplicateBlockedOpen] = useState(false);
   const [duplicateBlockedMessage, setDuplicateBlockedMessage] = useState("Hindi puwedeng magkapareho ang product name at size.");
 
-  const sizeOptions = ["SMALL", "MEDIUM", "LARGE"] as const;
+  const sizeOptions = ["REGULAR", "SMALL", "MEDIUM", "LARGE"] as const;
 
   const createProduct = api.product.create.useMutation({
     onSuccess: () => {
@@ -211,10 +258,10 @@ const ProductsPage: NextPage = () => {
       category: product.categories[0]?.category.name || "",
       imageFile: null,
       size: ((): SizeOption => {
-        const normalized = ((product.size ?? "SMALL") as string).toUpperCase();
+        const normalized = ((product.size ?? "REGULAR") as string).toUpperCase();
         return (sizeOptions.includes(normalized as any)
           ? (normalized as any)
-          : "SMALL") as SizeOption;
+          : "REGULAR") as SizeOption;
       })(),
     });
     setIsEditModalOpen(true);
@@ -251,7 +298,7 @@ const ProductsPage: NextPage = () => {
     // Client-side duplicate check to provide a friendly dialog
     if (!isEditModalOpen) {
       const normalizedName = formData.name.trim().toLowerCase();
-      const normalizedSize = (formData.size || "SMALL").trim().toLowerCase();
+      const normalizedSize = (formData.size || "REGULAR").trim().toLowerCase();
       const sameNameMatches = (allProducts ?? []).filter(
         (p: any) =>
           p.name.trim().toLowerCase() === normalizedName &&
@@ -259,7 +306,7 @@ const ProductsPage: NextPage = () => {
       ) as ProductWithCategories[];
 
       const exact = sameNameMatches.some(
-        (p) => (p.size ?? "SMALL").trim().toLowerCase() === normalizedSize,
+        (p) => (p.size ?? "REGULAR").trim().toLowerCase() === normalizedSize,
       );
 
       if (sameNameMatches.length > 0) {
@@ -273,7 +320,7 @@ const ProductsPage: NextPage = () => {
           image: formData.image,
           category: formData.category,
           productType: formData.productType,
-          size: formData.size || "SMALL",
+          size: formData.size || "REGULAR",
         });
         setIsDuplicateDialogOpen(true);
         if (exact) return; // block exact duplicate here
@@ -290,7 +337,7 @@ const ProductsPage: NextPage = () => {
       image: formData.image,
       category: formData.category,
       productType: formData.productType,
-      size: (formData.size || "SMALL").toString().toUpperCase() as SizeOption,
+      size: (formData.size || "REGULAR").toString().toUpperCase() as SizeOption,
     };
 
     if (isEditModalOpen && selectedProduct) {
@@ -500,7 +547,17 @@ const ProductsPage: NextPage = () => {
                       });
                       const groups = Array.from(grouped.entries());
                       return groups.map(([key, variants]) => {
-                        const first = variants[0];
+                        const order: Record<string, number> = { REGULAR: 0, SMALL: 1, MEDIUM: 2, LARGE: 3 };
+                        const first = variants
+                          .slice()
+                          .sort((a: any, b: any) => {
+                            const as = order[(a?.size || "").toUpperCase()] ?? 99;
+                            const bs = order[(b?.size || "").toUpperCase()] ?? 99;
+                            if (as !== bs) return as - bs;
+                            const ap = Number.parseFloat(a?.price ?? "0");
+                            const bp = Number.parseFloat(b?.price ?? "0");
+                            return (Number.isNaN(ap) ? 0 : ap) - (Number.isNaN(bp) ? 0 : bp);
+                          })[0];
                         const prices = variants
                           .map((v) => parseFloat(v.price))
                           .filter((n) => !Number.isNaN(n));
@@ -551,9 +608,9 @@ const ProductsPage: NextPage = () => {
                                 <div className="font-medium">
                                   {hasMultiple
                                     ? min === max
-                                      ? `?${min.toFixed(2)}`
-                                      : `?${min.toFixed(2)} - ?${max.toFixed(2)}`
-                                    : `?${parseFloat(first.price).toFixed(2)}`}
+                                      ? `₱${min.toFixed(2)}`
+                                      : `₱${min.toFixed(2)} - ₱${max.toFixed(2)}`
+                                    : `₱${parseFloat(first.price).toFixed(2)}`}
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -614,7 +671,7 @@ const ProductsPage: NextPage = () => {
                                                 <Badge variant="outline">
                                                   {(v.size || 'SMALL').charAt(0) + (v.size || 'SMALL').slice(1).toLowerCase()}
                                                 </Badge>
-                                                <span className="font-medium">?{parseFloat(v.price).toFixed(2)}</span>
+                                                <span className="font-medium">₱{parseFloat(v.price).toFixed(2)}</span>
                                               </div>
                                               <div className="text-xs text-muted-foreground max-w-[300px] truncate">
                                                 {v.description}
@@ -775,7 +832,8 @@ const ProductsPage: NextPage = () => {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                required
+                required={!lockDescription}
+                disabled={lockDescription}
                 className="min-h-24 max-h-48 resize-none overflow-y-auto"
                 value={formData.description}
                 onChange={(e) =>
@@ -784,8 +842,11 @@ const ProductsPage: NextPage = () => {
                     description: e.target.value,
                   })
                 }
-                placeholder="Enter product description"
+                placeholder={lockDescription ? "Auto-filled from existing product" : "Enter product description"}
               />
+              {lockDescription && (
+                <p className="text-xs text-muted-foreground">Auto-filled from existing product</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -838,6 +899,7 @@ const ProductsPage: NextPage = () => {
                   setFormData({ ...formData, category: value })
                 }
                 required
+                disabled={lockCategory}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
@@ -852,6 +914,9 @@ const ProductsPage: NextPage = () => {
                     ))}
                 </SelectContent>
               </Select>
+              {lockCategory && (
+                <p className="text-xs text-muted-foreground">Auto-filled from existing product</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -859,12 +924,15 @@ const ProductsPage: NextPage = () => {
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="file-upload"
-                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm"
+                  className={`${lockImage ? "pointer-events-none opacity-60" : ""} border-input bg-background hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm`}
+                  aria-disabled={lockImage}
                 >
                   <Upload className="h-4 w-4" />
                   {formData.imageFile
                     ? formData.imageFile.name
-                    : "Upload Image"}
+                    : lockImage
+                      ? "Auto-filled"
+                      : "Upload Image"}
                 </label>
                 <input
                   id="file-upload"
@@ -872,6 +940,7 @@ const ProductsPage: NextPage = () => {
                   accept="image/*"
                   className="hidden"
                   onChange={handleFileChange}
+                  disabled={lockImage}
                 />
                 {isUploading && <Package className="h-4 w-4 animate-spin" />}
               </div>
@@ -884,6 +953,9 @@ const ProductsPage: NextPage = () => {
                     </AvatarFallback>
                   </Avatar>
                 </div>
+              )}
+              {lockImage && formData.image && !formData.imageFile && (
+                <p className="text-xs text-muted-foreground">Auto-filled image from existing product</p>
               )}
             </div>
 
@@ -1137,7 +1209,7 @@ const ProductsPage: NextPage = () => {
                   className="bg-[#f8610e] hover:bg-[#f8610e]/90"
                   onClick={() => {
                     if (pendingCreatePayload) {
-                      createProduct.mutate(pendingCreatePayload);
+                      const enriched = { ...pendingCreatePayload, description: (pendingCreatePayload?.description && String(pendingCreatePayload.description).trim().length > 0) ? pendingCreatePayload.description : (matchedDesc || formData.description || ''), category: pendingCreatePayload?.category || matchedCat || formData.category || '' }; createProduct.mutate(enriched);
                       setIsDuplicateDialogOpen(false);
                       setPendingCreatePayload(null);
                     }

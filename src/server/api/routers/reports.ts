@@ -2,6 +2,8 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fs from "fs";
+import path from "path";
 
 export const productReportsRouter = createTRPCRouter({
   getProducts: publicProcedure
@@ -302,13 +304,70 @@ export const productReportsRouter = createTRPCRouter({
       const pageWidth = 595.28; // A4 width
       const pageHeight = 841.89; // A4 height
 
-      const addHeader = (page: any) => {
-        const title = "Products Report";
-        page.drawText("PingPing", { x: pageMargin, y: pageHeight - pageMargin - 10, size: 14, font: fontBold });
-        page.drawText(title, { x: pageMargin, y: pageHeight - pageMargin - 28, size: 12, font });
+      const embedLogo = (() => {
+        let cached: any | null = null;
+        return async () => {
+          if (cached !== null) return cached;
+          try {
+            const logoPath = path.resolve(process.cwd(), "public", "logo.png");
+            const bytes = fs.readFileSync(logoPath);
+            cached = await pdf.embedPng(bytes);
+          } catch {
+            cached = undefined;
+          }
+          return cached;
+        };
+      })();
+
+      const addHeader = async (page: any) => {
+        const businessName = "Ping-Ping's Tinapa";
+        const systemTitle = "PING-PINGS TINAPA CONTENT MANAGEMENT SYSTEM WITH QR-CODE";
+        // Thin accent line across the top
+        page.drawRectangle({ x: 0, y: pageHeight - 8, width: pageWidth, height: 2, color: rgb(0.973, 0.38, 0.055) });
+
+        // Logo at the very top center inside a circular badge
+        const logo = await embedLogo();
+        const diameter = 56;
+        const centerX = pageWidth / 2;
+        // Place circle very near the top
+        const centerY = pageHeight - 20 - diameter / 2;
+        // Outer ring
+        page.drawEllipse({ x: centerX, y: centerY, xScale: diameter / 2 + 2, yScale: diameter / 2 + 2, color: rgb(0.973, 0.38, 0.055) });
+        // Inner fill
+        page.drawEllipse({ x: centerX, y: centerY, xScale: diameter / 2, yScale: diameter / 2, color: rgb(1, 1, 1) });
+        if (logo) {
+          const padding = 6;
+          const target = diameter - padding * 2;
+          const scale = Math.min(target / logo.width, target / logo.height);
+          const w = logo.width * scale;
+          const h = logo.height * scale;
+          page.drawImage(logo, { x: centerX - w / 2, y: centerY - h / 2, width: w, height: h });
+        }
+
+        // Business name just below the logo
+        let y = centerY - diameter / 2 - 8;
+        const nameSize = 13;
+        const nameWidth = fontBold.widthOfTextAtSize(businessName, nameSize);
+        page.drawText(businessName, { x: (pageWidth - nameWidth) / 2, y: y - nameSize, size: nameSize, font: fontBold, color: rgb(0.08,0.08,0.08) });
+        y -= nameSize + 4;
+
+        // System title
+        const sysSize = 10.5;
+        const sysWidth = font.widthOfTextAtSize(systemTitle, sysSize);
+        page.drawText(systemTitle, { x: (pageWidth - sysWidth) / 2, y: y - sysSize, size: sysSize, font, color: rgb(0.2,0.2,0.2) });
+        y -= sysSize + 6;
+
+        // Report title and generated
+        const reportTitle = "Products Report";
+        const reportSize = 12;
+        const reportWidth = font.widthOfTextAtSize(reportTitle, reportSize);
+        page.drawText(reportTitle, { x: (pageWidth - reportWidth) / 2, y: y - reportSize, size: reportSize, font, color: rgb(0.25,0.25,0.25) });
+        y -= reportSize + 4;
+
         const gen = `Generated: ${new Date().toLocaleString()}`;
-        const genWidth = font.widthOfTextAtSize(gen, 9);
-        page.drawText(gen, { x: pageWidth - pageMargin - genWidth, y: pageHeight - pageMargin - 10, size: 9, font, color: rgb(0.2,0.2,0.2) });
+        const genSize = 9;
+        const genWidth = font.widthOfTextAtSize(gen, genSize);
+        page.drawText(gen, { x: (pageWidth - genWidth) / 2, y: y - genSize, size: genSize, font, color: rgb(0.35,0.35,0.35) });
       };
 
       const addTableHeader = (page: any, y: number) => {
@@ -324,8 +383,8 @@ export const productReportsRouter = createTRPCRouter({
       };
 
       let page = pdf.addPage([pageWidth, pageHeight]);
-      addHeader(page);
-      let y = pageHeight - pageMargin - 50;
+      await addHeader(page);
+      let y = pageHeight - 190; // extra spacing below header
       const cols = addTableHeader(page, y);
       y -= 16;
 
@@ -344,10 +403,10 @@ export const productReportsRouter = createTRPCRouter({
       };
 
       for (const p of products) {
-        if (y < pageMargin + 40) {
+        if (y < pageMargin + 80) {
           page = pdf.addPage([pageWidth, pageHeight]);
-          addHeader(page);
-          y = pageHeight - pageMargin - 50;
+          await addHeader(page);
+          y = pageHeight - 190;
           addTableHeader(page, y);
           y -= 16;
         }

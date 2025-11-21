@@ -38,6 +38,9 @@ import {
 
 const ReportsPage = () => {
   const { toast } = useToast();
+  const safeFormat = (d?: Date, fmt: string = "LLL dd, y") => (d ? format(d, fmt) : "");
+  const SHOW_PRODUCTS = false;
+  const SHOW_FEEDBACK = false;
 
   // Shared filters
   const [search, setSearch] = useState("");
@@ -243,7 +246,8 @@ const handleExportFeedbackCSV = () => {};
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
       <div className="container mx-auto space-y-8 p-6">
-        {/* Header */}
+        {/* Header (hidden) */}
+        {false && (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#f8610e] to-orange-600 p-8 text-white shadow-2xl">
           <div className="absolute inset-0 bg-black/5"></div>
           <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-white/10 blur-3xl"></div>
@@ -254,22 +258,11 @@ const handleExportFeedbackCSV = () => {};
               <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">
                 Reports
               </h1>
-              <p className="text-lg text-orange-100">
-                Attendance Records, Product Management, and Feedback
-              </p>
+              <p className="text-lg text-orange-100">Attendance Records</p>
             </div>
 
             {/* Top exports only (date range hidden) */}
             <div className="ml-auto flex flex-nowrap items-center gap-2 sm:gap-3">
-              <Button
-                onClick={handleExportProductsPDF}
-                disabled={exportProductsMutation.isPending}
-                variant="secondary"
-                size="sm"
-                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
-              >
-                Export Products PDF
-              </Button>
               <Button
                 onClick={handleExportAttendancePDF}
                 disabled={exportAttendanceMutation.isPending}
@@ -279,22 +272,15 @@ const handleExportFeedbackCSV = () => {};
               >
                 Export Attendance PDF
               </Button>
-              <Button
-                onClick={handleExportFeedbackPDF}
-                disabled={exportFeedbackMutation.isPending}
-                variant="secondary"
-                size="sm"
-                className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
-              >
-                Export Feedback PDF
-              </Button>
             </div>
           </div>
         </div>
+        )}
 
         {/* TOP: two cards with Export */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Products summary */}
+          {/* Products summary - hidden */}
+          {false && (
           <Card className="group relative overflow-hidden rounded-2xl border-none bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg transition-all duration-300 hover:shadow-xl">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -332,14 +318,16 @@ const handleExportFeedbackCSV = () => {};
               </div>
             </CardContent>
           </Card>
+          )}
 
-          {/* Attendance summary */}
+          {/* Attendance summary (hidden) */}
+          {false && (
           <Card className="group relative overflow-hidden rounded-2xl border-none bg-gradient-to-br from-green-50 to-green-100 shadow-lg transition-all duration-300 hover:shadow-xl">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium tracking-wider text-green-600 uppercase">
-                    Attendance ({attDate ? format(attDate, "LLL dd, y") : "RECORD"})
+                    Attendance ({attDate ? safeFormat(attDate, "LLL dd, y") : "RECORD"})
                   </p>
                   <p className="text-3xl font-bold text-green-900">
                     {attendanceCount}
@@ -371,9 +359,11 @@ const handleExportFeedbackCSV = () => {};
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
 
-        {/* Advanced Filters (Products) */}
+        {/* Advanced Filters (Products) - hidden */}
+        {false && (
         <Card className="overflow-hidden rounded-2xl border-none shadow-lg">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 pb-4">
             <CardTitle className="flex items-center text-xl text-slate-800">
@@ -451,8 +441,10 @@ const handleExportFeedbackCSV = () => {};
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* PRODUCT INVENTORY TABLE (Status column removed) */}
+        {/* PRODUCT INVENTORY TABLE (hidden) */}
+        {false && (
         <Card className="overflow-hidden rounded-2xl border-none shadow-lg">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 pb-4">
             <div className="flex flex-row items-center justify-between">
@@ -539,16 +531,17 @@ const handleExportFeedbackCSV = () => {};
                   </TableBody>
                 </Table>
 
-                {(!productsData || productsData.data.length === 0) && (
+                {/* {(!productsData || productsData.data.length === 0) && (
                   <div className="flex flex-col items-center justify-center py-10 text-gray-500">
                     <FileText className="mb-2 h-8 w-8" />
                     No products found
-                  </div>
-                )}
+                  </div> */}
+                {/* )} */}
               </div>
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* ATTENDANCE TABLE */}
         <Card className="overflow-hidden rounded-2xl border-none shadow-lg">
@@ -594,7 +587,7 @@ const handleExportFeedbackCSV = () => {};
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {attDate ? format(attDate, "LLL dd, y") : <span>Filter date</span>}
+                    {attDate ? safeFormat(attDate, "LLL dd, y") : <span>Filter date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto rounded-xl p-0">
@@ -672,21 +665,22 @@ const handleExportFeedbackCSV = () => {};
               </div>
             )}
 
-            {attTotal > attLimit && (
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-sm text-gray-600">
-                  Showing {attStart + 1}â€“{Math.min(attStart + attLimit, attTotal)} of {attTotal}
-                </div>
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-sm text-gray-600">
+                Showing {attTotal === 0 ? 0 : (attStart + 1)} - {Math.min(attStart + attLimit, attTotal)} of {attTotal} records
+              </div>
+              {attTotal > attLimit && (
                 <div className="space-x-2">
                   <Button variant="outline" size="sm" disabled={attPage === 1} onClick={() => setAttPage(p => Math.max(1, p - 1))}>Previous</Button>
                   <Button variant="outline" size="sm" disabled={attStart + attLimit >= attTotal} onClick={() => setAttPage(p => p + 1)}>Next</Button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* FEEDBACK */}
+        {/* FEEDBACK - hidden */}
+        {false && (
         <Card className="overflow-hidden rounded-2xl border-none shadow-lg">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 pb-4">
             <div className="flex items-center justify-between">
@@ -816,35 +810,37 @@ const handleExportFeedbackCSV = () => {};
                     ))}
                   </TableBody>
                 </Table>
-                {(!feedbackData || feedbackData.feedbacks.length === 0) && (
+                {/* {(!feedbackData || feedbackData.feedbacks.length === 0) && (
                   <div className="flex flex-col items-center justify-center py-10 text-gray-500">
                     <FileText className="mb-2 h-8 w-8" />
                     No feedback found
                   </div>
-                )}
+                )} */}
               </div>
             )}
-
+{/* 
             {feedbackData && feedbackData.pagination?.totalPages > 1 && (
               <div className="flex items-center justify-between pt-2">
                 <div className="text-sm text-gray-600">
-                  Showing {(fbPage - 1) * fbLimit + 1}â€“
+                  Showing {attRows.length} record(s)
                   {Math.min(fbPage * fbLimit, feedbackData.pagination.total)} of {feedbackData.pagination.total}
                 </div>
                 <div className="space-x-2">
                   <Button variant="outline" size="sm" disabled={fbPage === 1} onClick={() => setFbPage(p => Math.max(1, p - 1))}>Previous</Button>
                   <Button variant="outline" size="sm" disabled={fbPage >= feedbackData.pagination.totalPages} onClick={() => setFbPage(p => p + 1)}>Next</Button>
                 </div>
-              </div>
-            )}
+              </div> */}
+            {/* )} */}
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );
 };
 
 export default ReportsPage;
+
 
 
 
