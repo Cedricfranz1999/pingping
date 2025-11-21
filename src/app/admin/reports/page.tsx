@@ -38,7 +38,7 @@ import {
 
 const ReportsPage = () => {
   const { toast } = useToast();
-  const safeFormat = (d?: Date, fmt: string = "LLL dd, y") => (d ? format(d, fmt) : "");
+  const safeFormat = (d?: Date, fmt = "LLL dd, y") => (d ? format(d, fmt) : "");
   const SHOW_PRODUCTS = false;
   const SHOW_FEEDBACK = false;
 
