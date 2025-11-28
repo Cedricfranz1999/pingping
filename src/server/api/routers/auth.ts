@@ -19,8 +19,10 @@ export const authRouter = createTRPCRouter({
 
       if (admin) {
         // Support both hashed and legacy plaintext passwords
-        const hashedMatch = await bcrypt.compare(input.password, admin.Password).catch(() => false);
-        const plainMatch = admin.Password === input.password;
+        const hashedMatch = await bcrypt
+          .compare(input.password, (admin as { password?: string; Password?: string }).password ?? (admin as any).Password)
+          .catch(() => false);
+        const plainMatch = ((admin as { password?: string; Password?: string }).password ?? (admin as any).Password) === input.password;
         const isValid = hashedMatch || plainMatch;
         if (!isValid) {
           throw new Error("Invalid username or password");

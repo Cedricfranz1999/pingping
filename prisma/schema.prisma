@@ -33,9 +33,9 @@ model Product {
   stock       Int
   price       String
   productType ProductType
-  size        String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  size        String?
   cartItems   CartItem[]
   orderItems  OrderItem[]
   categories  ProductCategory[]
@@ -44,35 +44,34 @@ model Product {
 }
 
 model ProductRating {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   productId Int
   userId    Int?
   rating    Float
   comment   String?
-  createdAt DateTime  @default(now())
-
-  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([productId])
   @@index([userId])
 }
 
 model User {
-  id        Int         @id @default(autoincrement())
-  email     String      @unique
+  id        Int             @id @default(autoincrement())
+  email     String          @unique
   password  String
   firstName String
   lastName  String
   phone     String?
   address   String?
-  isActive  Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
   username  String
   carts     Cart?
-  orders    UserOrder[]
   ratings   ProductRating[]
+  orders    UserOrder[]
 
   @@index([email])
 }

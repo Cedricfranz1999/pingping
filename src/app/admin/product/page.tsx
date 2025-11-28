@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { type NextPage } from "next";
 import Head from "next/head";
 import { type Product, type Category, ProductType } from "@prisma/client";
@@ -110,11 +110,13 @@ const ProductsPage: NextPage = () => {
 
   // If the entered name matches an existing product, auto-fill description/category/image
   const [isExistingName, setIsExistingName] = useState(false);
+  const [duplicateNameExists, setDuplicateNameExists] = useState(false);
   const [lockDescription, setLockDescription] = useState(false);
   const [lockCategory, setLockCategory] = useState(false);
   const [lockImage, setLockImage] = useState(false);
   const [matchedDesc, setMatchedDesc] = useState("");
   const [matchedCat, setMatchedCat] = useState("");
+  const [matchedImage, setMatchedImage] = useState("");
 
   const {
     data: productsData,
@@ -134,51 +136,140 @@ const ProductsPage: NextPage = () => {
   const { data: categories } = api.product.getCategories.useQuery();
   const { data: allProducts } = api.product.getAllSimple.useQuery();
 
-  useEffect(() => {
-    const normalizedName = formData.name.trim().toLowerCase();
-    if (!normalizedName) {
-      setIsExistingName(false);
-      return;
-    }
-    const matches = (allProducts ?? []).filter(
-      (p: any) =>
-        (p?.name ?? "").trim().toLowerCase() === normalizedName &&
-        p?.productType === formData.productType,
-    ) as ProductWithCategories[];
+  // Build unique base product options (by name + productType), prefer item with image/description
+  const baseOptions = useMemo(() => {
+    const map = new Map<string, ProductWithCategories>();
+    (allProducts ?? []).forEach((p: any) => {
+      const key = `${p.productType}::${String(p.name ?? "").trim().toLowerCase()}`;
+      if (!key || key.endsWith("::")) return;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, p as ProductWithCategories);
+        return;
+      }
+      // Prefer one that has image and non-empty description
+      const score = (x: any) =>
+        ((x?.image ?? "").trim().length > 0 ? 1 : 0) +
+        ((x?.description ?? "").trim().length > 0 ? 1 : 0);
+      if (score(p) > score(existing)) {
+        map.set(key, p as ProductWithCategories);
+      }
+    });
+    // Convert to array with display label
+    const arr = Array.from(map.entries()).map(([key, p]) => ({
+      key,
+      name: p.name,
+      productType: p.productType,
+      sample: p,
+      category: p?.categories?.[0]?.category?.name ?? "",
+    }));
+    // Sort by name asc
+    arr.sort((a, b) => a.name.localeCompare(b.name));
+    return arr;
+  }, [allProducts]);
 
-    if (matches.length > 0) {
-      const withDesc = matches.find((m) => (m as any)?.description && String((m as any).description).trim().length > 0);
-      const desc = (withDesc as any)?.description ?? (matches[0] as any)?.description ?? "";
-      const cat = (matches[0] as any)?.categories?.[0]?.category?.name ?? "";
-      const withImage = matches.find((m: any) => (m?.image ?? "").trim().length > 0);
-      setIsExistingName(true);
-      setLockDescription(Boolean(desc && String(desc).trim().length > 0));
-      setLockCategory(Boolean(cat && String(cat).trim().length > 0));
-      setLockImage(Boolean(withImage && String(withImage.image ?? "").trim().length > 0));
-      setMatchedDesc(String(desc ?? ""));
-      setMatchedCat(String(cat ?? ""));
-      setFormData((prev) => ({
-        ...prev,
-        description: (desc && String(desc).trim().length > 0) ? desc : prev.description,
-        category: (cat && String(cat).trim().length > 0) ? cat : prev.category,
-        image: prev.image && prev.image.trim().length > 0 ? prev.image : (withImage?.image ?? prev.image),
-      }));
-    } else {
+  const [selectedBaseKey, setSelectedBaseKey] = useState<string>("");
+
+  // Helper to apply base product selection programmatically or via UI
+  const handleSelectBase = (value: string) => {
+    if (value === "__none__") {
+      setSelectedBaseKey("");
+      // Clear locks when cleared
       setIsExistingName(false);
       setLockDescription(false);
       setLockCategory(false);
       setLockImage(false);
       setMatchedDesc("");
       setMatchedCat("");
+      setMatchedImage("");
+      return;
     }
-  }, [formData.name, formData.productType, allProducts]);
+    setSelectedBaseKey(value);
+    const chosen = baseOptions.find((o) => o.key === value);
+    if (!chosen) {
+      // Clear locks when not found
+      setIsExistingName(false);
+      setLockDescription(false);
+      setLockCategory(false);
+      setLockImage(false);
+      setMatchedDesc("");
+      setMatchedCat("");
+      setMatchedImage("");
+      return;
+    }
+    const p = chosen.sample as any;
+    const desc = String(p?.description ?? "");
+    const cat = String(chosen.category ?? "");
+    const img = String(p?.image ?? "");
+    setIsExistingName(true);
+    setLockDescription(desc.trim().length > 0);
+    setLockCategory(cat.trim().length > 0);
+    setLockImage(img.trim().length > 0);
+    setMatchedDesc(desc);
+    setMatchedCat(cat);
+    setMatchedImage(img);
+    setFormData((prev) => ({
+      ...prev,
+      name: String(chosen.name),
+      productType: chosen.productType as any,
+      description: desc.trim().length > 0 ? desc : prev.description,
+      category: cat.trim().length > 0 ? cat : prev.category,
+      image: prev.image && prev.image.trim().length > 0 ? prev.image : (img || prev.image),
+    }));
+  };
 
+  // Duplicate dialog state (declare before use in effects)
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<ProductWithCategories[]>([]);
   const [hasExactDuplicate, setHasExactDuplicate] = useState(false);
   const [pendingCreatePayload, setPendingCreatePayload] = useState<any | null>(null);
   const [duplicateBlockedOpen, setDuplicateBlockedOpen] = useState(false);
   const [duplicateBlockedMessage, setDuplicateBlockedMessage] = useState("Hindi puwedeng magkapareho ang product name at size.");
+  // Prevent immediate re-open for the same name after closing
+  const [duplicateDialogOpenedForName, setDuplicateDialogOpenedForName] = useState<string>("");
+
+  useEffect(() => {
+    const normalizedName = formData.name.trim().toLowerCase();
+    if (!normalizedName) {
+      setIsExistingName(false);
+      setDuplicateNameExists(false);
+      setIsDuplicateDialogOpen(false);
+      setDuplicateDialogOpenedForName("");
+      return;
+    }
+  const matches = (allProducts ?? []).filter(
+      (p: any) => (p?.name ?? "").trim().toLowerCase() === normalizedName,
+    ) as ProductWithCategories[];
+
+    if (matches.length > 0) {
+      // Only show duplicate dialog; do not auto-fill from matches here.
+      setIsExistingName(true);
+      setDuplicateMatches(matches);
+      // Mark if exact duplicate (same name & same size) to disable Save
+      const normalizedSize = (formData.size || "REGULAR").trim().toLowerCase();
+      const exact = matches.some((p) => {
+        const sameType = (p as any).productType === formData.productType;
+        const pSize = String((p as any).size ?? "").trim().toLowerCase();
+        // Only treat as exact duplicate when existing product has an explicit size
+        return sameType && pSize !== "" && pSize === normalizedSize;
+      });
+      setHasExactDuplicate(exact);
+      setDuplicateNameExists(true);
+      if (isCreateModalOpen && duplicateDialogOpenedForName !== normalizedName) {
+        setIsDuplicateDialogOpen(true);
+        setDuplicateDialogOpenedForName(normalizedName);
+      }
+    } else {
+      setIsExistingName(false);
+      setDuplicateNameExists(false);
+      setHasExactDuplicate(false);
+      // Do not modify lock/matched fields here; base product selection will handle autofill
+      setIsDuplicateDialogOpen(false);
+      setDuplicateDialogOpenedForName("");
+    }
+  }, [formData.name, formData.productType, allProducts, isCreateModalOpen, duplicateDialogOpenedForName]);
+
+  // (moved above)
 
   const sizeOptions = ["REGULAR", "SMALL", "MEDIUM", "LARGE"] as const;
 
@@ -189,12 +280,12 @@ const ProductsPage: NextPage = () => {
       resetForm();
     },
     onError: (err) => {
-      if (
-        err instanceof Error &&
-        err.message.toLowerCase().includes("same name and size")
-      ) {
-        setDuplicateBlockedMessage("Hindi puwedeng magkapareho ang product name at size.");
-        setDuplicateBlockedOpen(true);
+      if (err instanceof Error) {
+        const msg = err.message.toLowerCase();
+        if (msg.includes("same name and size") || msg.includes("same name already exists")) {
+          setDuplicateBlockedMessage("May existing nang product na may parehong pangalan. Hindi puwedeng mag-add ng duplicate.");
+          setDuplicateBlockedOpen(true);
+        }
       }
     },
   });
@@ -206,12 +297,12 @@ const ProductsPage: NextPage = () => {
       resetForm();
     },
     onError: (err) => {
-      if (
-        err instanceof Error &&
-        err.message.toLowerCase().includes("same name and size")
-      ) {
-        setDuplicateBlockedMessage("Hindi puwedeng magkapareho ang product name at size.");
-        setDuplicateBlockedOpen(true);
+      if (err instanceof Error) {
+        const msg = err.message.toLowerCase();
+        if (msg.includes("same name and size") || msg.includes("same name already exists")) {
+          setDuplicateBlockedMessage("May existing nang product na may parehong pangalan. Hindi puwedeng mag-update sa duplicate.");
+          setDuplicateBlockedOpen(true);
+        }
       }
     },
   });
@@ -233,7 +324,7 @@ const ProductsPage: NextPage = () => {
       category: "",
       productType: "TINAPA",
       imageFile: null,
-      size: "SMALL",
+      size: "REGULAR",
     });
   };
 
@@ -295,36 +386,24 @@ const ProductsPage: NextPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Client-side duplicate check to provide a friendly dialog
+    // Client-side duplicate check: block only exact duplicate (same name + same productType + same size when existing size is explicit)
     if (!isEditModalOpen) {
       const normalizedName = formData.name.trim().toLowerCase();
-      const normalizedSize = (formData.size || "REGULAR").trim().toLowerCase();
-      const sameNameMatches = (allProducts ?? []).filter(
-        (p: any) =>
-          p.name.trim().toLowerCase() === normalizedName &&
-          p.productType === formData.productType,
+      const candidates = (allProducts ?? []).filter(
+        (p: any) => String(p.name ?? "").trim().toLowerCase() === normalizedName,
       ) as ProductWithCategories[];
 
-      const exact = sameNameMatches.some(
-        (p) => (p.size ?? "REGULAR").trim().toLowerCase() === normalizedSize,
-      );
+      const normalizedSize = (formData.size || "REGULAR").trim().toLowerCase();
+      const exactDupes = candidates.filter((p) => {
+        const sameType = (p as any).productType === formData.productType;
+        const pSize = String((p as any).size ?? "").trim().toLowerCase();
+        return sameType && pSize !== "" && pSize === normalizedSize;
+      });
 
-      if (sameNameMatches.length > 0) {
-        setDuplicateMatches(sameNameMatches);
-        setHasExactDuplicate(exact);
-        setPendingCreatePayload({
-          name: formData.name,
-          description: formData.description,
-          price: formData.price,
-          stock: formData.stock,
-          image: formData.image,
-          category: formData.category,
-          productType: formData.productType,
-          size: formData.size || "REGULAR",
-        });
-        setIsDuplicateDialogOpen(true);
-        if (exact) return; // block exact duplicate here
-        // If only same name with different sizes found, show dialog first
+      if (exactDupes.length > 0) {
+        setDuplicateMatches(exactDupes);
+        setDuplicateBlockedMessage("May existing nang product na may parehong pangalan at size. Hindi puwedeng mag-add ng exact duplicate.");
+        setDuplicateBlockedOpen(true);
         return;
       }
     }
@@ -796,6 +875,26 @@ const ProductsPage: NextPage = () => {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Optional: Choose existing product to auto-fill fields */}
+            <div className="space-y-2">
+              <Label htmlFor="base">Base Product (optional)</Label>
+              <Select
+                value={selectedBaseKey}
+                onValueChange={(value) => handleSelectBase(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select existing product to autofill" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {baseOptions.map((opt) => (
+                    <SelectItem key={opt.key} value={opt.key}>
+                      {opt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Product Name</Label>
               <Input
@@ -1160,19 +1259,19 @@ const ProductsPage: NextPage = () => {
       </Dialog>
 
       {/* Duplicate warning dialog */}
-      <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>
+      <Dialog open={isDuplicateDialogOpen} onOpenChange={(open) => {
+        setIsDuplicateDialogOpen(open);
+        if (!open) {
+          const current = String(formData.name ?? '').trim().toLowerCase();
+          if (current) setDuplicateDialogOpenedForName(current);
+        }
+      }}>
         <DialogContent className="sm:max-w-[560px] max-h-[70vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#f8610e]">Duplicate product</DialogTitle>
-            {hasExactDuplicate ? (
-              <DialogDescription>
-                A product with the same name and size already exists. You cannot add an exact duplicate. Edit the existing product or change the size.
-              </DialogDescription>
-            ) : (
-              <DialogDescription>
-                Products with the same name already exist. You can add a new variant with a different size, or edit an existing one below.
-              </DialogDescription>
-            )}
+            <DialogTitle className="text-[#f8610e]">Existing products found</DialogTitle>
+            <DialogDescription>
+              May existing nang product na may parehong pangalan. Hindi puwedeng mag-add ng duplicate. I-edit na lang ang existing item o palitan ang pangalan.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {duplicateMatches.map((p) => (
@@ -1186,38 +1285,29 @@ const ProductsPage: NextPage = () => {
                     Category: {p.categories?.[0]?.category?.name ?? "Uncategorized"}
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsDuplicateDialogOpen(false);
-                    setIsCreateModalOpen(false);
-                    openEditModal(p as any);
-                  }}
-                >
-                  Edit
-                </Button>
+                {/* actions moved to single footer button */}
               </div>
             ))}
           </div>
           <DialogFooter>
             <div className="flex w-full items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDuplicateDialogOpen(false)}>
-                Change size
+              <Button
+                className="bg-[#f8610e] hover:bg-[#f8610e]/90"
+                onClick={() => {
+                  // pick the best match (prefer with image+description)
+                  const score = (x: any) =>
+                    (((x?.image ?? '').trim().length > 0) ? 1 : 0) +
+                    (((x?.description ?? '').trim().length > 0) ? 1 : 0);
+                  const pick = [...duplicateMatches].sort((a: any, b: any) => score(b) - score(a))[0];
+                  if (pick) {
+                    const key = `${pick.productType}::${String(pick.name ?? '').trim().toLowerCase()}`;
+                    handleSelectBase(key);
+                  }
+                  setIsDuplicateDialogOpen(false);
+                }}
+              >
+                Use Base
               </Button>
-              {!hasExactDuplicate && (
-                <Button
-                  className="bg-[#f8610e] hover:bg-[#f8610e]/90"
-                  onClick={() => {
-                    if (pendingCreatePayload) {
-                      const enriched = { ...pendingCreatePayload, description: (pendingCreatePayload?.description && String(pendingCreatePayload.description).trim().length > 0) ? pendingCreatePayload.description : (matchedDesc || formData.description || ''), category: pendingCreatePayload?.category || matchedCat || formData.category || '' }; createProduct.mutate(enriched);
-                      setIsDuplicateDialogOpen(false);
-                      setPendingCreatePayload(null);
-                    }
-                  }}
-                >
-                  Add as new size
-                </Button>
-              )}
             </div>
           </DialogFooter>
         </DialogContent>

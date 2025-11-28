@@ -94,16 +94,18 @@ export default function ImprovedHomePage() {
   const [ratingValue, setRatingValue] = useState<number>(0);
   const [ratingComment, setRatingComment] = useState<string>("");
 
-  const { data: products, isLoading: loadingTinapa } =
-    api.product.getTinapaProducts.useQuery();
-  const { data: pasalubongItems, isLoading: loadingPasalubong } =
-    api.product.getPasalubongProducts.useQuery();
+  // Fetch both lists via a single query to avoid DB pool timeouts
+  const { data: homeLists, isLoading: loadingHomeLists } =
+    api.product.getHomeLists.useQuery();
+
+  const products = homeLists?.tinapa;
+  const pasalubongItems = homeLists?.pasalubong;
 
   const allProducts = useMemo(
     () => [...(products ?? []), ...(pasalubongItems ?? [])],
     [products, pasalubongItems],
   );
-  const loadingAll = loadingTinapa || loadingPasalubong;
+  const loadingAll = loadingHomeLists;
 
   // Ratings: fetch for all product ids once
   const allProductIds = useMemo(() => (allProducts ?? []).map((p: any) => p.id as number), [allProducts]);

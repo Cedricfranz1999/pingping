@@ -57,7 +57,7 @@ const pasalubongProducts = Array.from({ length: 12 }, (_, i) => ({
 const generateAdmins = (count: number) => {
   return Array.from({ length: count }, () => ({
     username: faker.internet.userName().toLowerCase().replace(/\s/g, "_"),
-    Password: faker.internet.password(),
+    password: faker.internet.password(),
   }));
 };
 
@@ -278,7 +278,7 @@ async function main() {
   await prisma.admin.create({
     data: {
       username: "admin",
-      Password: "admin123", // Note: matches your schema's capital P in Password
+      password: "admin123",
     },
   });
   console.log(`✅ Created default admin

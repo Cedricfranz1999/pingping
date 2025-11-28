@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "~/trpc/react";
 
@@ -15,6 +15,8 @@ function fmtDate(d?: Date | null) {
 export default function ReportsPrintPage() {
   const params = useSearchParams();
   const section = (params.get("section") || "").toLowerCase();
+  // no print dialog; export PDF via server
+  const [downloading, setDownloading] = useState(false);
 
   // Common filters from query string
   const search = params.get("search") || undefined;
@@ -81,16 +83,86 @@ export default function ReportsPrintPage() {
     return "Report";
   }, [section]);
 
-  // Auto-print after data loads to allow easy Save as PDF
-  useEffect(() => {
-    if (!isLoading) {
-      const t = setTimeout(() => window.print(), 400);
-      return () => clearTimeout(t);
+  // Mutations for true PDF export (server-rendered)
+  const exportProductsMutation = api.reports.exportProductsPDF.useMutation();
+  const exportAttendanceMutation = api.attendanceRecord.exportPDF.useMutation();
+  const exportFeedbackMutation = api.feedback.exportPDF.useMutation();
+
+  const downloadPDF = (base64: string, filename: string) => {
+    const byteChars = atob(base64);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = useCallback(() => {
+    if (downloading) return;
+    setDownloading(true);
+    if (section === "products") {
+      exportProductsMutation.mutate(
+        { search, dateFrom, dateTo, categoryId } as any,
+        {
+          onSuccess: (data: { pdfBase64: string; filename?: string }) => {
+            downloadPDF(data.pdfBase64, data.filename ?? `products-export-${new Date().toISOString().slice(0,10)}.pdf`);
+            setDownloading(false);
+          },
+          onError: () => setDownloading(false),
+        },
+      );
+    } else if (section === "attendance") {
+      exportAttendanceMutation.mutate(
+        { search, date: attDate } as any,
+        {
+          onSuccess: (data: { pdfBase64: string; filename?: string }) => {
+            downloadPDF(data.pdfBase64, data.filename ?? `attendance-export-${new Date().toISOString().slice(0,10)}.pdf`);
+            setDownloading(false);
+          },
+          onError: () => setDownloading(false),
+        },
+      );
+    } else if (section === "feedback") {
+      exportFeedbackMutation.mutate(
+        { search, stars, dateFrom, dateTo } as any,
+        {
+          onSuccess: (data: { pdfBase64: string; filename?: string }) => {
+            downloadPDF(data.pdfBase64, data.filename ?? `feedback-export-${new Date().toISOString().slice(0,10)}.pdf`);
+            setDownloading(false);
+          },
+          onError: () => setDownloading(false),
+        },
+      );
+    } else {
+      setDownloading(false);
     }
-  }, [isLoading]);
+  }, [section, search, dateFrom, dateTo, categoryId, attDate, stars, downloading, exportProductsMutation, exportAttendanceMutation, exportFeedbackMutation]);
+
+  // No auto-print; preview-only then export via button
 
   return (
     <div className="p-6 print:p-0">
+      {/* Fullscreen overlay to hide admin sidebar/header */}
+      {/* Preview toolbar (hidden on print) */}
+      <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
+        <div className="text-sm text-gray-600">Preview mode - review before export</div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportPDF}
+            disabled={downloading || isLoading}
+            className="rounded-md bg-[#f8610e] px-4 py-2 text-white shadow hover:opacity-90 disabled:opacity-60"
+          >
+            {downloading ? "Exporting..." : "Export PDF"}
+          </button>
+        </div>
+      </div>
       {/* Header with logo and org details */}
       <div className="border-b pb-4 mb-6">
         <div className="flex items-center gap-4">
@@ -222,3 +294,4 @@ function FeedbackTable({ rows }: { rows: any[] }) {
     </table>
   );
 }
+

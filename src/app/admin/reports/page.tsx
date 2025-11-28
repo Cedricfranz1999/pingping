@@ -264,13 +264,13 @@ const handleExportFeedbackCSV = () => {};
             {/* Top exports only (date range hidden) */}
             <div className="ml-auto flex flex-nowrap items-center gap-2 sm:gap-3">
               <Button
-                onClick={handleExportAttendancePDF}
+                onClick={() => openPrint("attendance")}
                 disabled={exportAttendanceMutation.isPending}
                 variant="secondary"
                 size="sm"
                 className="border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 whitespace-nowrap"
               >
-                Export Attendance PDF
+                Preview Attendance
               </Button>
             </div>
           </div>
@@ -298,7 +298,7 @@ const handleExportFeedbackCSV = () => {};
                 </div>
                 {/* <div className="flex items-center gap-2">
                   <Button
-                    onClick={handleExportProductsPDF}
+                    onClick={() => openPrint("products")}
                     disabled={exportProductsMutation.isPending}
                     variant="outline"
                     size="sm"
@@ -339,7 +339,7 @@ const handleExportFeedbackCSV = () => {};
                 </div>
                 {/* <div className="flex items-center gap-2">
                   <Button
-                    onClick={handleExportAttendancePDF}
+                    onClick={() => openPrint("attendance")}
                     disabled={exportAttendanceMutation.isPending}
                     variant="outline"
                     size="sm"
@@ -453,7 +453,7 @@ const handleExportFeedbackCSV = () => {};
                 Product Management
               </CardTitle>
               <Button
-                onClick={handleExportProductsPDF}
+                onClick={() => openPrint("products")}
                 disabled={exportProductsMutation.isPending}
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
@@ -463,7 +463,7 @@ const handleExportFeedbackCSV = () => {};
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-                Export
+                Preview
               </Button>
             </div>
           </CardHeader>
@@ -552,7 +552,7 @@ const handleExportFeedbackCSV = () => {};
                 Employee Attendance
               </CardTitle>
               <Button
-                onClick={handleExportAttendancePDF}
+                onClick={() => openPrint("attendance")}
                 disabled={exportAttendanceMutation.isPending}
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
@@ -562,7 +562,7 @@ const handleExportFeedbackCSV = () => {};
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-                Export
+                Preview
               </Button>
             </div>
           </CardHeader>
@@ -690,7 +690,7 @@ const handleExportFeedbackCSV = () => {};
               </CardTitle>
 
               <Button
-                onClick={handleExportFeedbackPDF}
+                onClick={() => openPrint("feedback")}
                 disabled={exportFeedbackMutation.isPending}
                 variant="outline"
                 className="rounded-xl border-gray-200 hover:border-[#f8610e] hover:bg-[#f8610e] hover:text-white"
@@ -700,7 +700,7 @@ const handleExportFeedbackCSV = () => {};
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-                Export
+                Preview
               </Button>
             </div>
           </CardHeader>
@@ -840,6 +840,9 @@ const handleExportFeedbackCSV = () => {};
 };
 
 export default ReportsPage;
+
+
+
 
 
 

@@ -5,6 +5,52 @@ import { ProductType } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 
 export const productsRouter = createTRPCRouter({
+  // Fetch both Tinapa and Pasalubong in a single query
+  getHomeLists: publicProcedure.query(async () => {
+    try {
+      const rows = await db.product.findMany({
+        where: { productType: { in: ["TINAPA", "PASALUBONG"] as any } },
+        select: {
+          id: true,
+          image: true,
+          name: true,
+          description: true,
+          stock: true,
+          price: true,
+          productType: true,
+          size: true,
+          createdAt: true,
+          updatedAt: true,
+          categories: { select: { category: true } },
+        },
+        orderBy: { name: "asc" },
+      });
+      const tinapa = rows.filter((r: any) => r.productType === "TINAPA");
+      const pasalubong = rows.filter((r: any) => r.productType === "PASALUBONG");
+      return { tinapa, pasalubong };
+    } catch {
+      // Fallback if size column is missing or other minor schema drift
+      const rows = await db.product.findMany({
+        where: { productType: { in: ["TINAPA", "PASALUBONG"] as any } },
+        select: {
+          id: true,
+          image: true,
+          name: true,
+          description: true,
+          stock: true,
+          price: true,
+          productType: true,
+          createdAt: true,
+          updatedAt: true,
+          categories: { select: { category: true } },
+        },
+        orderBy: { name: "asc" },
+      });
+      const tinapa = rows.filter((r: any) => r.productType === "TINAPA");
+      const pasalubong = rows.filter((r: any) => r.productType === "PASALUBONG");
+      return { tinapa, pasalubong };
+    }
+  }),
   // ===============================
   // GET ALL PRODUCTS (with filters)
   // ===============================
@@ -184,21 +230,32 @@ export const productsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      // Duplicate guard (prefer name+size+type, but fall back if size column is missing)
+      // Normalize name to prevent variants by whitespace/case
+      const normalizedName = input.name.trim();
+
+      // Duplicate guard: prefer name+productType+size uniqueness (case-insensitive on name, exact on size enum)
+      // Fallback to name+productType when `size` column is missing
       try {
-        const existsWithSize = await db.product.findFirst({
-          where: { name: input.name, productType: input.productType, size: input.size },
+        const dupWithSize = await db.product.findFirst({
+          where: {
+            productType: input.productType,
+            name: { equals: normalizedName, mode: 'insensitive' as any },
+            size: input.size as any,
+          },
           select: { id: true },
         });
-        if (existsWithSize) {
+        if (dupWithSize) {
           throw new Error("Product with the same name and size already exists.");
         }
       } catch {
-        const existsNoSize = await db.product.findFirst({
-          where: { name: input.name, productType: input.productType },
+        const dupNoSize = await db.product.findFirst({
+          where: {
+            productType: input.productType,
+            name: { equals: normalizedName, mode: 'insensitive' as any },
+          },
           select: { id: true },
         });
-        if (existsNoSize) {
+        if (dupNoSize) {
           throw new Error("Product with the same name already exists.");
         }
       }
@@ -213,7 +270,7 @@ export const productsRouter = createTRPCRouter({
       try {
         const created = await db.product.create({
           data: {
-            name: input.name,
+            name: normalizedName,
             description: input.description,
             price: input.price,
             stock: input.stock,
@@ -234,7 +291,7 @@ export const productsRouter = createTRPCRouter({
       } catch {
         const created = await db.product.create({
           data: {
-            name: input.name,
+            name: normalizedName,
             description: input.description,
             price: input.price,
             stock: input.stock,
@@ -265,10 +322,16 @@ export const productsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      // Duplicate guard (prefer name+size+type, but fall back if size column is missing)
+      const normalizedName = input.name.trim();
+      // Duplicate guard: prefer name+productType+size (ignore current id)
       try {
         const dupWithSize = await db.product.findFirst({
-          where: { name: input.name, productType: input.productType, size: input.size, NOT: { id: input.id } },
+          where: {
+            productType: input.productType,
+            name: { equals: normalizedName, mode: 'insensitive' as any },
+            size: input.size as any,
+            NOT: { id: input.id },
+          },
           select: { id: true },
         });
         if (dupWithSize) {
@@ -276,7 +339,11 @@ export const productsRouter = createTRPCRouter({
         }
       } catch {
         const dupNoSize = await db.product.findFirst({
-          where: { name: input.name, productType: input.productType, NOT: { id: input.id } },
+          where: {
+            productType: input.productType,
+            name: { equals: normalizedName, mode: 'insensitive' as any },
+            NOT: { id: input.id },
+          },
           select: { id: true },
         });
         if (dupNoSize) {
@@ -295,7 +362,7 @@ export const productsRouter = createTRPCRouter({
         const updated = await db.product.update({
           where: { id: input.id },
           data: {
-            name: input.name,
+            name: normalizedName,
             description: input.description,
             price: input.price,
             stock: input.stock,
@@ -311,7 +378,7 @@ export const productsRouter = createTRPCRouter({
         const updated = await db.product.update({
           where: { id: input.id },
           data: {
-            name: input.name,
+            name: normalizedName,
             description: input.description,
             price: input.price,
             stock: input.stock,
