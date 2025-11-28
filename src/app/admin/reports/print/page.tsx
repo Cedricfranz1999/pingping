@@ -18,19 +18,24 @@ export default function ReportsPrintPage() {
   // no print dialog; export PDF via server
   const [downloading, setDownloading] = useState(false);
 
-  // Common filters from query string
+  // Common filters from query string (memoize parsed values)
   const search = params.get("search") || undefined;
-  const dateFrom = params.get("dateFrom") ? new Date(params.get("dateFrom")!) : undefined;
-  const dateTo = params.get("dateTo") ? new Date(params.get("dateTo")!) : undefined;
+  const dateFromStr = params.get("dateFrom");
+  const dateToStr = params.get("dateTo");
+  const dateFrom = useMemo(() => (dateFromStr ? new Date(dateFromStr) : undefined), [dateFromStr]);
+  const dateTo = useMemo(() => (dateToStr ? new Date(dateToStr) : undefined), [dateToStr]);
 
   // Products-specific
-  const categoryId = params.get("categoryId") ? Number(params.get("categoryId")) : undefined;
+  const categoryIdStr = params.get("categoryId");
+  const categoryId = useMemo(() => (categoryIdStr ? Number(categoryIdStr) : undefined), [categoryIdStr]);
 
   // Attendance-specific
-  const attDate = params.get("date") ? new Date(params.get("date")!) : undefined;
+  const attDateStr = params.get("date");
+  const attDate = useMemo(() => (attDateStr ? new Date(attDateStr) : undefined), [attDateStr]);
 
   // Feedback-specific
-  const stars = params.get("stars") ? Number(params.get("stars")) : undefined;
+  const starsStr = params.get("stars");
+  const stars = useMemo(() => (starsStr ? Number(starsStr) : undefined), [starsStr]);
 
   // Data fetching based on section
   const productsQuery = api.reports.getProducts.useQuery(
@@ -294,4 +299,3 @@ function FeedbackTable({ rows }: { rows: any[] }) {
     </table>
   );
 }
-

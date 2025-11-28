@@ -267,7 +267,7 @@ const ProductsPage: NextPage = () => {
       setIsDuplicateDialogOpen(false);
       setDuplicateDialogOpenedForName("");
     }
-  }, [formData.name, formData.productType, allProducts, isCreateModalOpen, duplicateDialogOpenedForName]);
+  }, [formData.name, formData.productType, formData.size, allProducts, isCreateModalOpen, duplicateDialogOpenedForName]);
 
   // (moved above)
 

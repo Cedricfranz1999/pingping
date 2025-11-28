@@ -57,7 +57,8 @@ const pasalubongProducts = Array.from({ length: 12 }, (_, i) => ({
 const generateAdmins = (count: number) => {
   return Array.from({ length: count }, () => ({
     username: faker.internet.userName().toLowerCase().replace(/\s/g, "_"),
-    password: faker.internet.password(),
+    // Prisma schema uses capital 'Password'
+    Password: faker.internet.password(),
   }));
 };
 
