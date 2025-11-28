@@ -12,7 +12,7 @@ export const adminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const admin = await ctx.db.admin.findUnique({ where: { username: input.username } });
+      const admin = await ctx.db.admin.findFirst({ where: { username: input.username } });
       if (!admin) {
         throw new Error("Admin not found");
       }
@@ -26,9 +26,8 @@ export const adminRouter = createTRPCRouter({
       }
 
       const hash = await bcrypt.hash(input.newPassword, 10);
-      await ctx.db.admin.update({ where: { id: admin.id }, data: { password: hash } });
+      await ctx.db.admin.update({ where: { id: admin.id }, data: { Password: hash } });
 
       return { message: "Password updated" };
     }),
 });
-

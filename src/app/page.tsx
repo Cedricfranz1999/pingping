@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "~/components/ui/dialog";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { api } from "~/trpc/react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -114,6 +114,21 @@ export default function ImprovedHomePage() {
     { enabled: allProductIds.length > 0 }
   );
 
+  // Ratings computation helper, memoized to keep stable reference
+  const computeGroupRating = useCallback((variants: any[]) => {
+    if (!ratingsMap) return { avg: 0, count: 0 };
+    let total = 0;
+    let count = 0;
+    for (const v of variants) {
+      const r = (ratingsMap as any)[v.id as number];
+      if (r && r.count > 0) {
+        total += r.average * r.count;
+        count += r.count;
+      }
+    }
+    return { avg: count > 0 ? total / count : 0, count };
+  }, [ratingsMap]);
+
   // Dialog helpers: group vs variant view and rating target
   const isGroupView = !!selectedProduct && selectedProduct.price === undefined;
   const groupDialogStats = useMemo(() => {
@@ -129,19 +144,7 @@ export default function ImprovedHomePage() {
     return Number(selectedProduct.id);
   }, [selectedProduct]);
 
-  function computeGroupRating(variants: any[]) {
-    if (!ratingsMap) return { avg: 0, count: 0 };
-    let total = 0;
-    let count = 0;
-    for (const v of variants) {
-      const r = ratingsMap[v.id as number];
-      if (r && r.count > 0) {
-        total += r.average * r.count;
-        count += r.count;
-      }
-    }
-    return { avg: count > 0 ? total / count : 0, count };
-  }
+  // computeGroupRating moved above and memoized
 
   const StarRow = ({ average, count }: { average: number; count?: number }) => {
     const stars = Array.from({ length: 5 }, (_, i) => {
