@@ -119,7 +119,7 @@ export default function ImprovedHomePage() {
   const groupDialogStats = useMemo(() => {
     if (!selectedProduct || !Array.isArray(selectedProduct.variants)) return { avg: 0, count: 0 };
     return computeGroupRating(selectedProduct.variants as any[]);
-  }, [selectedProduct, ratingsMap, computeGroupRating]);
+  }, [selectedProduct, computeGroupRating]);
   const ratingTargetId = useMemo(() => {
     if (!selectedProduct) return undefined as number | undefined;
     if (selectedProduct.price === undefined) {

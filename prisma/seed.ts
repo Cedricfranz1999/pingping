@@ -279,7 +279,7 @@ async function main() {
   await prisma.admin.create({
     data: {
       username: "admin",
-      password: "admin123",
+      Password: "admin123",
     },
   });
   console.log(`✅ Created default admin
