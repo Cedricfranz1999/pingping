@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "~/trpc/react";
 
@@ -36,50 +36,7 @@ export default function ReportsPrintPage() {
   // Feedback-specific
   const starsStr = params.get("stars");
   const stars = useMemo(() => (starsStr ? Number(starsStr) : undefined), [starsStr]);
-
-  // Data fetching based on section
-  const productsQuery = api.reports.getProducts.useQuery(
-    section === "products"
-      ? {
-          skip: 0,
-          take: 100000,
-          search,
-          dateFrom,
-          dateTo,
-          categoryId,
-        }
-      : ({} as any),
-    { enabled: section === "products" }
-  );
-
-  const attendanceQuery = api.attendanceRecord.getAll.useQuery(
-    section === "attendance"
-      ? {
-          search,
-          date: attDate,
-        }
-      : ({} as any),
-    { enabled: section === "attendance" }
-  );
-
-  const feedbackQuery = api.feedback.getAllForExport?.useQuery
-    ? api.feedback.getAllForExport.useQuery(
-        section === "feedback"
-          ? {
-              search,
-              stars,
-              dateFrom,
-              dateTo,
-            }
-          : ({} as any),
-        { enabled: section === "feedback" }
-      )
-    : ({ data: undefined, isLoading: false } as any);
-
-  const isLoading =
-    (section === "products" && productsQuery.isLoading) ||
-    (section === "attendance" && attendanceQuery.isLoading) ||
-    (section === "feedback" && feedbackQuery.isLoading);
+  // No client-side data fetching here; preview uses server PDF
 
   const title = useMemo(() => {
     if (section === "products") return "Products Report";
@@ -88,10 +45,10 @@ export default function ReportsPrintPage() {
     return "Report";
   }, [section]);
 
-  // Mutations for true PDF export (server-rendered)
-  const exportProductsMutation = api.reports.exportProductsPDF.useMutation();
-  const exportAttendanceMutation = api.attendanceRecord.exportPDF.useMutation();
-  const exportFeedbackMutation = api.feedback.exportPDF.useMutation();
+  // State for inline PDF preview (via API route)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const downloadPDF = (base64: string, filename: string) => {
     const byteChars = atob(base64);
@@ -109,99 +66,131 @@ export default function ReportsPrintPage() {
     URL.revokeObjectURL(url);
   };
 
+  const openPdfInNewTab = (base64: string) => {
+    const byteChars = atob(base64);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
+
   const handleExportPDF = useCallback(() => {
     if (downloading) return;
     setDownloading(true);
-    if (section === "products") {
-      exportProductsMutation.mutate(
-        { search, dateFrom, dateTo, categoryId } as any,
-        {
-          onSuccess: (data: { pdfBase64: string; filename?: string }) => {
-            downloadPDF(data.pdfBase64, data.filename ?? `products-export-${new Date().toISOString().slice(0,10)}.pdf`);
-            setDownloading(false);
-          },
-          onError: () => setDownloading(false),
-        },
-      );
-    } else if (section === "attendance") {
-      exportAttendanceMutation.mutate(
-        { search, date: attDate } as any,
-        {
-          onSuccess: (data: { pdfBase64: string; filename?: string }) => {
-            downloadPDF(data.pdfBase64, data.filename ?? `attendance-export-${new Date().toISOString().slice(0,10)}.pdf`);
-            setDownloading(false);
-          },
-          onError: () => setDownloading(false),
-        },
-      );
-    } else if (section === "feedback") {
-      exportFeedbackMutation.mutate(
-        { search, stars, dateFrom, dateTo } as any,
-        {
-          onSuccess: (data: { pdfBase64: string; filename?: string }) => {
-            downloadPDF(data.pdfBase64, data.filename ?? `feedback-export-${new Date().toISOString().slice(0,10)}.pdf`);
-            setDownloading(false);
-          },
-          onError: () => setDownloading(false),
-        },
-      );
-    } else {
-      setDownloading(false);
-    }
-  }, [section, search, dateFrom, dateTo, categoryId, attDate, stars, downloading, exportProductsMutation, exportAttendanceMutation, exportFeedbackMutation]);
+    const qs = new URLSearchParams();
+    if (section) qs.set("section", section);
+    if (search) qs.set("search", search);
+    if (dateFrom) qs.set("dateFrom", dateFrom.toISOString());
+    if (dateTo) qs.set("dateTo", dateTo.toISOString());
+    if (categoryId != null) qs.set("categoryId", String(categoryId));
+    if (attDate) qs.set("date", attDate.toISOString());
+    if (typeof stars === "number") qs.set("stars", String(stars));
+    qs.set("download", "1");
+    const url = `/api/reports/preview?${qs.toString()}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setDownloading(false);
+  }, [section, search, dateFrom, dateTo, categoryId, attDate, stars, downloading]);
 
-  // No auto-print; preview-only then export via button
+  // Build preview URL to the API route
+  const buildPreviewUrl = useCallback(() => {
+    if (!section) return null;
+    const qs = new URLSearchParams();
+    qs.set("section", section);
+    if (search) qs.set("search", search);
+    if (dateFrom) qs.set("dateFrom", dateFrom.toISOString());
+    if (dateTo) qs.set("dateTo", dateTo.toISOString());
+    if (categoryId != null) qs.set("categoryId", String(categoryId));
+    if (attDate) qs.set("date", attDate.toISOString());
+    if (typeof stars === "number") qs.set("stars", String(stars));
+    return `/api/reports/preview?${qs.toString()}`;
+  }, [section, search, dateFrom, dateTo, categoryId, attDate, stars]);
+
+  // Generate PDF on load/filters change and show in preview
+  // Ensures the preview matches the exported PDF format
+  const loadPreview = useCallback(() => {
+    if (!section) {
+      setPdfUrl(null);
+      return;
+    }
+    setPreviewError(null);
+    setPreviewLoading(true);
+    const url = buildPreviewUrl();
+    setPdfUrl(url);
+    const t = setTimeout(() => setPreviewLoading(false), 300);
+    return () => clearTimeout(t);
+  }, [section, buildPreviewUrl]);
+
+  // Trigger preview generation
+  useEffect(() => {
+    const t = setTimeout(() => {
+      loadPreview();
+    }, 150);
+    return () => {
+      clearTimeout(t);
+      setPdfUrl(null);
+    };
+  }, [loadPreview]);
 
   return (
     <div className="p-6 print:p-0">
-      {/* Fullscreen overlay to hide admin sidebar/header */}
       {/* Preview toolbar (hidden on print) */}
       <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
-        <div className="text-sm text-gray-600">Preview mode - review before export</div>
+        <div className="text-sm text-gray-600">
+          {title} - PDF Preview
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportPDF}
-            disabled={downloading || isLoading}
+            disabled={downloading || previewLoading}
             className="rounded-md bg-[#f8610e] px-4 py-2 text-white shadow hover:opacity-90 disabled:opacity-60"
           >
-            {downloading ? "Exporting..." : "Export PDF"}
+            {downloading ? "Exporting..." : "Download PDF"}
           </button>
-        </div>
-      </div>
-      {/* Header with logo and org details */}
-      <div className="border-b pb-4 mb-6">
-        <div className="flex items-center gap-4">
-          <img src="/logo.png" alt="Logo" className="h-14 w-14 object-contain" />
-          <div>
-            <div className="text-xl font-bold leading-tight">PingPing</div>
-            <div className="text-sm text-gray-700">{title}</div>
-          </div>
-          <div className="ml-auto text-right">
-            <div className="text-xs text-gray-600">Generated: {fmtDate(new Date())}</div>
-            <div className="text-xs text-gray-600">
-              {dateFrom || dateTo ? `Range: ${fmtDate(dateFrom)} - ${fmtDate(dateTo)}` : ""}
-              {attDate ? ` ${dateFrom || dateTo ? "• " : ""}Date: ${fmtDate(attDate)}` : ""}
-              {typeof stars === "number" ? ` ${dateFrom || dateTo || attDate ? "• " : ""}Stars: ${stars}` : ""}
-            </div>
-            {search && (
-              <div className="text-xs text-gray-600">Search: "{search}"</div>
-            )}
-          </div>
+          {pdfUrl && (
+            <a
+              // href={pdfUrl}
+              // target="_blank"
+              // rel="noreferrer"
+              // className="rounded-md border border-[#f8610e] px-4 py-2 text-[#f8610e] shadow hover:bg-orange-50"
+            >
+              {/* Open in New Tab */}
+            </a>
+          )}
         </div>
       </div>
 
-      {/* Content */}
-      {section === "products" && (
-        <ProductsTable products={productsQuery.data?.data ?? []} />
-      )}
-      {section === "attendance" && (
-        <AttendanceTable rows={attendanceQuery.data ?? []} />
-      )}
-      {section === "feedback" && (
-        <FeedbackTable rows={feedbackQuery.data ?? []} />
+      {/* Inline PDF preview to match export formatting */}
+      {previewLoading && (
+        <div className="flex h-[80vh] items-center justify-center text-gray-500">
+          Generating PDF preview...</div>
       )}
 
-      {/* Fallback for unknown section */}
+      {!previewLoading && previewError && (
+        <div className="text-center text-red-600">{previewError}</div>
+      )}
+
+      {!previewLoading && !previewError && !pdfUrl && section && (
+        <div className="text-center text-gray-500">No preview available. Try Download PDF.</div>
+      )}
+
+      {!previewLoading && pdfUrl && (
+        <object
+          data={pdfUrl}
+          type="application/pdf"
+          className="h-[85vh] w-full rounded border"
+        >
+          <iframe src={pdfUrl} className="h-[85vh] w-full" title="PDF Preview" />
+        </object>
+      )}
+
+      {/* Fallback when no section is specified */}
       {!section && (
         <p className="text-center text-gray-500">No section specified.</p>
       )}
@@ -209,93 +198,3 @@ export default function ReportsPrintPage() {
   );
 }
 
-function ProductsTable({ products }: { products: any[] }) {
-  return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr>
-          <th className="border p-2 text-left">ID</th>
-          <th className="border p-2 text-left">Name</th>
-          <th className="border p-2 text-left">Description</th>
-          <th className="border p-2 text-right">Stock</th>
-          <th className="border p-2 text-right">Price</th>
-          <th className="border p-2 text-left">Categories</th>
-          <th className="border p-2 text-left">Created</th>
-        </tr>
-      </thead>
-      <tbody>
-        {products.map((p) => (
-          <tr key={p.id}>
-            <td className="border p-2">{p.id}</td>
-            <td className="border p-2">{p.name}</td>
-            <td className="border p-2">{p.description}</td>
-            <td className="border p-2 text-right">{p.stock}</td>
-            <td className="border p-2 text-right">{p.price}</td>
-            <td className="border p-2">{p.categories?.map((c: any) => c.category?.name).join(", ")}</td>
-            <td className="border p-2">{fmtDate(p.createdAt)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function AttendanceTable({ rows }: { rows: any[] }) {
-  return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr>
-          <th className="border p-2 text-left">ID</th>
-          <th className="border p-2 text-left">Employee</th>
-          <th className="border p-2 text-left">Username</th>
-          <th className="border p-2 text-left">Date</th>
-          <th className="border p-2 text-left">Time In</th>
-          <th className="border p-2 text-left">Time Out</th>
-          <th className="border p-2 text-left">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <td className="border p-2">{r.id}</td>
-            <td className="border p-2">{`${r.employee?.firstname ?? ""} ${r.employee?.lastname ?? ""}`}</td>
-            <td className="border p-2">{r.employee?.username ?? ""}</td>
-            <td className="border p-2">{fmtDate(r.date)}</td>
-            <td className="border p-2">{fmtDate(r.timeIn)}</td>
-            <td className="border p-2">{fmtDate(r.timeOut)}</td>
-            <td className="border p-2">{r.status ?? ""}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function FeedbackTable({ rows }: { rows: any[] }) {
-  return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr>
-          <th className="border p-2 text-left">ID</th>
-          <th className="border p-2 text-left">Name</th>
-          <th className="border p-2 text-left">Email</th>
-          <th className="border p-2 text-left">Stars</th>
-          <th className="border p-2 text-left">Feedback</th>
-          <th className="border p-2 text-left">Created</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((f) => (
-          <tr key={f.id}>
-            <td className="border p-2">{f.id}</td>
-            <td className="border p-2">{f.name}</td>
-            <td className="border p-2">{f.email}</td>
-            <td className="border p-2">{f.star}</td>
-            <td className="border p-2">{f.feedback}</td>
-            <td className="border p-2">{fmtDate(f.createdAt)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
