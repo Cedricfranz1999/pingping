@@ -92,7 +92,7 @@ const handleLogout = () => {
             <div className="mb-6 flex items-center gap-3 border-b border-white/20 pb-4">
               <div className="h-10 w-10 overflow-hidden rounded-full bg-white/10 backdrop-blur-sm">
                 <Image
-                  alt="Pings Ping Tinapa Logo"
+                  alt="Ping Pings Tinapa Logo"
                   src="/logo.png"
                   width={40}
                   height={40}
@@ -100,7 +100,7 @@ const handleLogout = () => {
                 />
               </div>
               <div>
-                <span className="text-lg font-bold">Pings Ping Tinapa</span>
+                <span className="text-lg font-bold">Ping Pings Tinapa</span>
                 <p className="text-xs text-white/80">
                   {role === "admin" ? "Admin Dashboard" : "Employee Portal"}
                 </p>
@@ -212,7 +212,7 @@ const handleLogout = () => {
       <div className="flex items-center gap-3">
         <div className="h-12 w-12 overflow-hidden rounded-full bg-[#f8610e]/10 backdrop-blur-sm">
           <Image
-            alt="Pings Ping Tinapa Logo"
+            alt="Ping Pings Tinapa Logo"
             src="/background1.png"
             width={48}
             height={48}
@@ -220,7 +220,7 @@ const handleLogout = () => {
           />
         </div>
         <div className="hidden sm:block">
-          <h1 className="text-xl font-bold text-gray-900">Pings Ping Tinapa</h1>
+          <h1 className="text-xl font-bold text-gray-900">Ping Pings Tinapa</h1>
           <p className="text-sm text-gray-600">
             {role === "admin" ? "Admin Dashboard" : "Employee Portal"}
           </p>

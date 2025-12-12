@@ -50,7 +50,7 @@ const Sidebar = () => {
             <div className="flex items-center space-x-3">
               <div className="h-12 w-12 overflow-hidden rounded-full bg-white/10 backdrop-blur-sm">
                 <Image
-                  alt="Pings Ping Tinapa Logo"
+                  alt="Ping Pings Tinapa Logo"
                   src="/logo.png"
                   width={48}
                   height={48}
@@ -59,7 +59,7 @@ const Sidebar = () => {
               </div>
               <div>
                 <Label className="text-lg font-bold text-white">
-                  Pings Ping Tinapa
+                  Ping Pings Tinapa
                 </Label>
                 <p className="text-xs text-white/80">Admin Dashboard</p>
               </div>
@@ -560,7 +560,7 @@ const Sidebar = () => {
           <div className="mt-auto p-4">
             <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
               <p className="text-center text-xs text-white/80">
-                Pings Ping Tinapa
+                Ping Pings Tinapa
               </p>
               <p className="text-center text-xs text-white/60">
                 Admin Panel v1.0
