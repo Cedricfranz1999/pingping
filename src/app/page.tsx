@@ -578,7 +578,7 @@ export default function ImprovedHomePage() {
                 <Image alt="logo" src="/logo.png" width={500} height={500} className="h-full w-full" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Pings Ping Tinapa</h1>
+                <h1 className="text-xl font-bold text-gray-900">Ping Pings Tinapa</h1>
                 <p className="text-sm text-gray-600">Authentic Filipino Delicacy</p>
               </div>
             </motion.div>
@@ -717,10 +717,10 @@ export default function ImprovedHomePage() {
                     <motion.div variants={fadeInUp} initial="initial" animate="animate" className="space-y-8">
                       <div className="space-y-6">
                         <motion.h2 className="text-4xl font-bold text-gray-900 lg:text-5xl" variants={fadeInUp}>
-                          About <span className="text-[#f8610e]">Pings Ping Tinapa</span>
+                          About <span className="text-[#f8610e]">Ping Pings Tinapa</span>
                         </motion.h2>
                         <motion.p className="text-lg leading-relaxed text-gray-600" variants={fadeInUp}>
-                          For over 25 years, Pings Ping Tinapa has been crafting authentic Filipino smoked fish using
+                          For over 25 years, Ping Pings Tinapa has been crafting authentic Filipino smoked fish using
                           traditional methods passed down through generations. Our commitment to quality and authenticity
                           has made us a beloved name in Filipino cuisine.
                         </motion.p>
@@ -771,7 +771,7 @@ export default function ImprovedHomePage() {
                     </motion.div>
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[600px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8610e]/5 to-[#f8610e]/20 shadow-2xl">
-                        <Image src="/aboutUs.png" alt="About Pings Ping Tinapa" fill unoptimized className="object-cover" />
+                        <Image src="/aboutUs.png" alt="About Ping Pings Tinapa" fill unoptimized className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
                       </div>
                       {/* Decorative elements */}
@@ -843,7 +843,7 @@ export default function ImprovedHomePage() {
                     </motion.div>
                     <motion.div variants={fadeInUp} className="relative">
                       <div className="relative h-[600px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#f8610e]/5 to-[#f8610e]/20 shadow-2xl">
-                        <Image src="/aboutUs4.png" alt="Our Heritage - Pings Ping Tinapa" fill unoptimized className="object-cover" />
+                        <Image src="/aboutUs4.png" alt="Our Heritage - Ping Pings Tinapa" fill unoptimized className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
                       </div>
                       {/* Decorative elements */}
@@ -1298,9 +1298,9 @@ export default function ImprovedHomePage() {
                     <div>
                       <h4 className="font-semibold text-gray-900">Email</h4>
                       <p className="text-gray-600">
-                        info@pingspingtinapa.com
+                        info@pingpingstinapa.com
                         <br />
-                        orders@pingspingtinapa.com
+                        orders@pingpingstinapa.com
                       </p>
                     </div>
                   </div>
@@ -1494,7 +1494,7 @@ export default function ImprovedHomePage() {
                   <span className="text-lg font-bold text-white">P</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">Pings Ping Tinapa</h3>
+                  <h3 className="text-xl font-bold">Ping Pings Tinapa</h3>
                   <p className="text-gray-400">Authentic Filipino Delicacy</p>
                 </div>
               </div>
@@ -1537,12 +1537,12 @@ export default function ImprovedHomePage() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>Calbayog City, Philippines</li>
                 <li>+63 32 123 4567</li>
-                <li>info@pingspingtinapa.com</li>
+                <li>info@pingpingstinapa.com</li>
               </ul>
             </div>
           </div>
           <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2025 Pings Ping Tinapa. All rights reserved.</p>
+            <p>&copy; 2025 Ping Pings Tinapa. All rights reserved.</p>
           </div>
         </div>
       </footer>
